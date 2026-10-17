@@ -1,5 +1,5 @@
 ---
-id: Intro
+id: intro
 ---
 
 import Admonition from '@theme/Admonition';
