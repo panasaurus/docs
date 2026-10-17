@@ -8,8 +8,11 @@ sidebar_position: 1
 
 # Daemon
 
-[Install it](/docs/daemon-install) in one command if you're ready.
+Install it via
 
+```bash
+curl -fsSL https://panasaurus.com/install.sh | bash
+```
 
 ## Feature map
 
