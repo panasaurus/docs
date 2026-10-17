@@ -1,0 +1,59 @@
+name: Build & deploy docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build site
+        run: npm run build
+
+      # guard: the one-liner in the README and docs must match the served file
+      - name: Verify install.sh is served at /install.sh
+        run: |
+          test -f build/install.sh || { echo "::error::build/install.sh missing"; exit 1; }
+          bash -n build/install.sh
+
+      - name: Shellcheck install.sh
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          shellcheck -S warning build/install.sh
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
