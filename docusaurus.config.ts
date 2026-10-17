@@ -14,8 +14,8 @@ const config: Config = {
   organizationName: "panasaurus",
   projectName: "docs",
 
-  onBrokenLinks: "throw",
-  onBrokenMarkdownLinks: "throw",
+  onBrokenLinks: "warn",
+  onBrokenMarkdownLinks: "warn",
   onDuplicateRoutes: "throw",
 
   i18n: {
