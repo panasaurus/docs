@@ -41,8 +41,7 @@ const sidebars: SidebarsConfig = {
         id: "daemon/daemon-index",
       },
       items: [
-        "daemon/daemon-configuration",        
-        "daemon/daemon-features",
+        "daemon/daemon-configuration",         
       ],
     },
     {
