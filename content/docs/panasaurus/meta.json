@@ -1,0 +1,8 @@
+{
+  "title": "Panasaurus",
+  "description": "Docs for the Panasaurus panel",
+  "icon": "panasaurus",
+  "pages": ["index", "automated", "installation", "configuration", "extensions", "eggs", "images", "migration", "community"],
+  "root": true,
+  "defaultOpen": true
+}

@@ -1,0 +1,33 @@
+---
+title: Eggs and the marketplace
+description: eggs.panasaurus.com — ready-made eggs for the Panasaurus panel, and how to import or request them.
+---
+
+
+Eggs are the recipes that tell the panel how to install and run a specific game or application — image, startup command, install script, configuration parser, all of it. Panasaurus publishes curated, ready-made eggs at the marketplace:
+
+**[eggs.panasaurus.com](https://eggs.panasaurus.com)**
+
+Every egg there is tested against Panasaurus Images and the current panel release, so you are not gambling on a three-year-old paste from a forum thread.
+
+## Importing an egg
+
+1. Download the `.egg` JSON file from the marketplace.
+2. In the panel, go to **Admin → Nests** and pick (or create) the nest you want it in.
+3. Choose **Import**, upload the file, and save.
+4. Assign it to your node's egg list if you restrict per-node availability — otherwise it is selectable immediately for new servers.
+
+Existing Pterodactyl and Pelican eggs import unchanged: the egg format is the same one the ecosystem already shares, and any egg that references old `ghcr.io/pterodactyl/yolks` images still works — though swapping to the matching `ghcr.io/panasaurus/images` tag keeps everything on maintained bases (see [Container images](/docs/panasaurus/images)).
+
+## Updating eggs
+
+Eggs are versioned JSON; re-importing an egg with the same name updates it in place. Servers pick up startup-command and variable changes on their next start, while install scripts only run again when you trigger a reinstall from the server's settings page. When an egg ships a config parser update, existing servers get it without any action on your part.
+
+## Requesting eggs
+
+Missing a game? Two paths:
+
+- **Ask on the [Discord](https://discord.gg/tszvW9zKN7)** — egg requests and testing help live there, and popular requests tend to get built.
+- **Bring your own** — any valid egg JSON imports fine, so community egg collections remain a valid stopgap while you wait.
+
+If you maintain eggs yourself, publishing them against `ghcr.io/panasaurus/images` tags means they work on stock Panasaurus installs with zero extra pulling configuration.

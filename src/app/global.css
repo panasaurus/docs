@@ -1,0 +1,29 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+@source '../../node_modules/fumadocs-ui/dist/**/*.js';
+
+@theme inline {
+  --color-brand: var(--panasaurus-brand);
+}
+
+@utility text-display-lg {
+  font-size: clamp(30px, 5vw, 42px);
+  line-height: 1.2;
+}
+
+@utility text-display-xl {
+  font-size: clamp(48px, 5vw, 90px);
+  line-height: 1.09;
+}
+
+:root {
+  --panasaurus-brand: #0e9f6e;
+  --color-fd-primary: #0e9f6e;
+}
+
+.dark {
+  --panasaurus-brand: #3ee6a0;
+  --color-fd-primary: #3ee6a0;
+}

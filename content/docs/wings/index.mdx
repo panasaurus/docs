@@ -1,0 +1,45 @@
+---
+title: Panasaurus Wings
+description: The node daemon, rewritten in Rust — drop-in compatible with the Wings v1.13.3 API the panel speaks.
+---
+
+
+Wings is the daemon that actually runs your servers: it talks to the Docker daemon, streams console output, serves files and SFTP, and takes backups. One Wings instance runs per physical node, and it registers with the panel as a node. Panasaurus Wings is a ground-up rewrite in Rust that speaks the same protocol — drop-in compatible with the Wings v1.13.3 HTTP API the panel already speaks.
+
+## What changes under the hood
+
+- **Rust, not Go.** Faster cold starts, lower idle memory, and a single static binary — installed to `/usr/local/bin/panasaurus-wings` from prebuilt release archives, with a source build as fallback.
+- **A documented API.** Every endpoint ships an OpenAPI document at `/openapi.json` — all 38 routes the panel expects — so integrations are written against a spec instead of guessed from panel source.
+- **Native TLS with ACME.** The API listener terminates TLS itself and can obtain certificates automatically over the TLS-ALPN challenge, no reverse proxy or certbot required.
+- **More backup drivers.** Local tar/zip/7z, S3, deduplicated chunked backups, btrfs and zfs snapshots, restic, and Proxmox Backup Server — the panel picks per node.
+- **SFTP that behaves.** Per-user connection limits, sliding-window rate limits, `ssh-ed25519` host keys persisted across restarts, and protocol extensions modern clients actually use.
+- **Per-server bandwidth limits** and filesystem-level disk quotas (btrfs subvolume, zfs dataset, or XFS project quotas) when you want them enforced, not just reported.
+
+<Cards>
+  <Card title="Install Wings" href="/docs/wings/installation">
+    The automated installer, or by hand in five commands
+  </Card>
+  <Card title="Configuration" href="/docs/wings/configuration">
+    Every section of /etc/panasaurus/config.yml explained
+  </Card>
+  <Card title="TLS and certificates" href="/docs/wings/tls">
+    ACME over TLS-ALPN, bring-your-own certs, or a reverse proxy
+  </Card>
+  <Card title="SFTP access" href="/docs/wings/sftp">
+    Authentication, host keys, rate limits, and the .wings shell
+  </Card>
+</Cards>
+
+## Requirements
+
+- Ubuntu 22.04+ or Debian 12 (apt-based, systemd)
+- amd64 or arm64 CPU
+- Docker — Wings cannot run servers without it; the installer sets it up if missing
+- A reachable panel with a node created for this machine
+
+<Callout type="info" title="Where to ask">
+  If a node refuses to go green, the usual suspects are covered in
+  [Wings installation](/docs/wings/installation) and
+  [Wings configuration](/docs/wings/configuration) — and the
+  [Discord](https://discord.gg/tszvW9zKN7) is where the edge cases live.
+</Callout>

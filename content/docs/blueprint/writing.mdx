@@ -1,0 +1,37 @@
+---
+title: Writing extensions
+description: Developer notes for building Blueprint extensions that run on Panasaurus.
+---
+
+
+Panasaurus keeps full compatibility with the Blueprint extension format — the [upstream developer guides](https://blueprint.zip/guides) remain the right starting point, and an extension that works on Pterodactyl works here. This page collects the Panasaurus-specific details worth knowing before you start.
+
+## The environment you are building for
+
+- **The panel is Docker-only.** Your extension installs inside the `panel` container, and its persistent files land in `data/extensions/` on the host. Assume the container can be recreated at any time — anything that must survive lives under the host mounts.
+- **PHP 8.4, Laravel 12, React 19, Vite.** The frontend is Vite-built rather than the Webpack mixes older panels ship; use the Blueprint routes registry for frontend additions instead of patching bundles.
+- **The `Pterodactyl\` namespace is intact by design.** Reference it as usual in your extension's backend code — renaming it would break the ecosystem, so Panasaurus doesn't.
+- **The CLI answers to both names.** Inside the container, `panasaurus` and `blueprint` are the same binary. Use whichever your install scripts already expect.
+
+## Frontend extension points
+
+The React app registers extension routes through the Blueprint routes registry, and dashboard/server containers expose the standard extension slots. That means:
+
+- No rebuild is required when an extension is installed — the wiring is data, not a patch.
+- Extensions that rely on Webpack-era hacks (runtime chunk patching, `__webpack_require__` pokes) are the one class that does not carry over; move that logic into the registry API.
+
+## Storage and lifecycle
+
+Extensions live under `data/extensions/` on the host. Three consequences worth designing around:
+
+1. **Container recreation is safe.** The image never bakes extensions in; reinstalling the panel container keeps every extension.
+2. **Backups are automatic.** Whatever your normal `data/` backup routine is, it already covers extensions.
+3. **Rollback is trivial.** Removing a broken extension from the CLI and restarting the panel always works — see [troubleshooting](/docs/panasaurus/extensions#troubleshooting).
+
+## Reference material
+
+- [Blueprint developer guides](https://blueprint.zip/guides) — the canonical extension format and API
+- [`docs/EXTENSIONS.md`](https://github.com/panasaurus/panel/blob/main/docs/EXTENSIONS.md) in the panel repository — Panasaurus's bundled reference for the port
+- The [marketplace](https://blueprint.zip) directory — read how popular extensions are structured
+
+If your extension behaves differently on Panasaurus than on stock Pterodactyl, that is a bug — bring it to the [Discord](https://discord.gg/tszvW9zKN7) or open an issue on the [panel repository](https://github.com/panasaurus/panel).

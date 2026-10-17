@@ -1,0 +1,8 @@
+{
+  "title": "Blueprint",
+  "description": "The extension framework, built into Panasaurus",
+  "icon": "blueprint",
+  "pages": ["index", "writing"],
+  "root": true,
+  "defaultOpen": true
+}

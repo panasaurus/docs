@@ -1,0 +1,9 @@
+name = "panasaurus-docs"
+compatibility_date = "2025-09-08"
+
+[build]
+command = "pnpm build"
+destination = "out"
+
+[assets]
+directory = "./out"

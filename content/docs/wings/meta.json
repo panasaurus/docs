@@ -1,0 +1,8 @@
+{
+  "title": "Wings",
+  "description": "Docs for the Panasaurus Wings daemon",
+  "icon": "wings",
+  "pages": ["index", "installation", "configuration", "tls", "sftp"],
+  "root": true,
+  "defaultOpen": true
+}
