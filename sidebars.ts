@@ -41,10 +41,8 @@ const sidebars: SidebarsConfig = {
         id: "daemon/daemon-index",
       },
       items: [
-        "daemon/daemon-configuration",
-        "daemon/daemon-tls",
+        "daemon/daemon-configuration",        
         "daemon/daemon-features",
-        "daemon/daemon-sftp",
       ],
     },
     {
@@ -56,7 +54,6 @@ const sidebars: SidebarsConfig = {
       },
       items: ["images/images-tags", "images/images-migration"],
     },
-    "community",
   ],
 };
 
