@@ -1,19 +1,10 @@
 ---
 title: Panasaurus Wings
-description: The node daemon, rewritten in Rust — drop-in compatible with the Wings v1.13.3 API the panel speaks.
+description: The node daemon
 ---
 
 
-Wings is the daemon that actually runs your servers: it talks to the Docker daemon, streams console output, serves files and SFTP, and takes backups. One Wings instance runs per physical node, and it registers with the panel as a node. Panasaurus Wings is a ground-up rewrite in Rust that speaks the same protocol — drop-in compatible with the Wings v1.13.3 HTTP API the panel already speaks.
-
-## What changes under the hood
-
-- **Rust, not Go.** Faster cold starts, lower idle memory, and a single static binary — installed to `/usr/local/bin/panasaurus-wings` from prebuilt release archives, with a source build as fallback.
-- **A documented API.** Every endpoint ships an OpenAPI document at `/openapi.json` — all 38 routes the panel expects — so integrations are written against a spec instead of guessed from panel source.
-- **Native TLS with ACME.** The API listener terminates TLS itself and can obtain certificates automatically over the TLS-ALPN challenge, no reverse proxy or certbot required.
-- **More backup drivers.** Local tar/zip/7z, S3, deduplicated chunked backups, btrfs and zfs snapshots, restic, and Proxmox Backup Server — the panel picks per node.
-- **SFTP that behaves.** Per-user connection limits, sliding-window rate limits, `ssh-ed25519` host keys persisted across restarts, and protocol extensions modern clients actually use.
-- **Per-server bandwidth limits** and filesystem-level disk quotas (btrfs subvolume, zfs dataset, or XFS project quotas) when you want them enforced, not just reported.
+Wings are the server management subsystem created for Panasaurus Panel 
 
 <Cards>
   <Card title="Install Wings" href="/docs/wings/installation">
