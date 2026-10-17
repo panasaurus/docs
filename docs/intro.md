@@ -1,45 +1,55 @@
 ---
-id: intro
+title: What is Panasaurus?
+description: Panasaurus is a game server management platform — a Docker-native panel with Blueprint built in, a Rust Wings daemon, and container images on ghcr.io.
+sidebar_label: Introduction
 ---
 
-import Admonition from '@theme/Admonition';
+# What is Panasaurus?
 
-# Welcome to Panasaurus!
+Panasaurus is a game server management platform built on the proven Pterodactyl and Pyrodactyl lineage, rebuilt with a modern stack and shipped as three parts that are designed to run together — but drop into almost any existing setup:
 
-### What is [Pelican](https://github.com/panasaurus/panel)?
+| Component | What it is | Where it lives |
+|-----------|------------|----------------|
+| **Panel** | Laravel 12 + React 19 control plane with the Blueprint extension framework pre-installed. Runs entirely in Docker — installed via Docker, extended via Docker. | [github.com/panasaurus/panel](https://github.com/panasaurus/panel) |
+| **Wings** | The node daemon, rewritten in Rust. Drop-in compatible with the Wings v1.13.3 HTTP API the panel speaks, with native TLS, multi-driver backups, and per-server bandwidth limits. | [github.com/panasaurus/wings](https://github.com/panasaurus/wings) |
+| **Images** | The core container images (the yolks) — Java, Node.js, Python, Go, Rust, games, and installers, published multi-arch to a single GHCR repository. | `ghcr.io/panasaurus/images` |
 
-**Panasaurus** is a free, open-source server management panel for hosting game servers, software and applications in isolated Docker containers.
+Everything is glued together by one installer: `install.sh` sets up the panel, Wings, or both on a fresh apt-based server with a single command.
 
-The Panel is the web interface: it shows information about your servers and sends commands to them.
+## Why Panasaurus
 
-### What is [Wings](https://github.com/panasaurus/wings)?
+- **Blueprint built in.** The extension framework ships pre-installed — no patching, no version drift. Community extensions for Blueprint and Pterodactyl work out of the box, and the admin area has a built-in marketplace with search and one-click install instructions.
+- **Docker all the way down.** The panel is a multi-stage container image with healthchecks and tuned PHP-FPM. Wings manages server containers over the Docker socket. Your host stays clean; your stack stays reproducible.
+- **A daemon that keeps up.** Wings in Rust means faster cold starts, lower idle memory, and an OpenAPI document for every endpoint at `/openapi.json` instead of guessing from the panel source.
+- **One image namespace.** Every core image lives in `ghcr.io/panasaurus/images` under a single tag scheme, so eggs, retention policies, and access control stay simple.
 
-**Wings** is the subsystem that runs on each machine hosting your servers.
-It handles the Docker containers behind the scenes (creating, starting, hibernation, stopping and restarting them) on behalf of the Panel. Users never interact with Wings directly.
+## Quick start
 
-### Example Setup
+On a fresh Ubuntu 22.04+ or Debian 12 machine, as root:
 
-```mermaid
-flowchart TD
-    A(Panasaurus Panel)
-    A --> B1(Node 1)
-    A --> B2(Node 2)
-    B1 --> W1(Wings)
-    B2 --> W2(Wings)
-    W2  ---> C5(Minecraft)
-    W2  ---> C6(Discord Bot)
-    W1  ---> C7(Palworld)
-    W1  ---> C8(Rust)
-    W1  ---> C9(Hytale)
-    W1  ---> C4(MongoDB)
+```bash
+curl -fsSL https://panasaurus.com/install.sh | bash
 ```
 
-### Open Source!
+You will be asked whether to install the panel, Wings, or both. The installer handles Docker, generates credentials, writes the systemd unit, and waits for health checks. Prefer explicit flags?
 
-The Panel is released under [Apache License 2](https://www.apache.org/licenses/LICENSE-2.0) and Wings under [MIT](https://opensource.org/license/mit).
-Anyone can browse the code, contribute improvements, and help identify bugs and security issues on [GitHub](https://github.com/panasaurus).
+```bash
+bash install.sh --panel
+bash install.sh --wings --panel-url https://panel.example.com \
+  --node-url https://node.example.com:8081 --token YOUR_API_KEY --node 1
+```
 
-<Admonition type="warning" title="Reporting Security Issues">
-    If you notice anything that raises a concern, please reach out directly to **team@panasaurus.com**  or at **aarvsn@disroot.org**
-    For security reasons, we ask that you handle security disclosures responsibly and **avoid posting them on GitHub.**
-</Admonition>
+The full flag reference is on the [installer page](/docs/installer). Panel setup continues in [Panel installation](/docs/panel/installation), node setup in [Wings installation](/docs/wings/installation).
+
+## Eggs and community
+
+Ready-made eggs for popular games are published at the [eggs marketplace](https://eggs.panasaurus.com) — download an `.egg` file, import it from **Admin → Nests**, and deploy. If something breaks or you want to request an egg, join the [Panasaurus Discord](https://discord.gg/tszvW9zKN7); the installer and these docs point there too.
+
+## Credits
+
+Panasaurus stands on the shoulders of giants:
+
+- [Pterodactyl](https://pterodactyl.io) — the original panel, by Dane Everitt and contributors
+- [Pyrodactyl](https://pyrodactyl.dev) — the modernized fork the panel builds on
+- [Blueprint](https://blueprint.zip) — the extension framework, by prpl.wtf and contributors
+- [Calagopus Wings](https://calagopus.com) — the Rust daemon rewrite Wings builds on

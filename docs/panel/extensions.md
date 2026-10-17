@@ -1,100 +1,50 @@
 ---
-id: extensions
-title: Extensions
-description: Blueprint is pre-installed — install community extensions in seconds, no patching required.
-sidebar_position: 2
-slug: /extensions
+title: Extensions and Blueprint
+description: Install and manage Blueprint extensions — the framework is built into Panasaurus, with a marketplace in the admin area.
+sidebar_label: Extensions
 ---
 
-# Extensions
+# Extensions and Blueprint
 
-Panasaurus ships with the **Blueprint extension framework** pre-installed — no patching, no manual file merging. Extensions written for Blueprint (and therefore stock Pterodactyl) install and run out of the box. The `Pterodactyl` PHP namespace and the `blueprint` CLI name are preserved alongside the Panasaurus ones, so the existing extension ecosystem works unmodified.
+The [Blueprint](https://blueprint.zip) extension framework ships **pre-installed** in Panasaurus. There is nothing to patch, no fork to maintain, and no version drift: extensions written for Blueprint and Pterodactyl install and run out of the box.
 
-## Installing an extension
+## The admin area
 
-From the admin area: **Admin → Panasaurus → Marketplace** finds extensions and shows one-click install instructions.
+Two pages under **Admin → Panasaurus** handle everything visual:
 
-From the shell, drop a `.blueprint` file into the panel container and run the CLI:
+- **Extensions** lists every installed extension with its version, controls, and removal action.
+- **Marketplace** is a live view of the Blueprint ecosystem directory, cached in-app, with search and filters. Each listing shows the exact install command, so you can copy it and go.
 
-```bash
-# inside the panel container
-panasaurus -install my-extension    # install/update from a .blueprint file
-panasaurus -list                    # what's installed
-panasaurus -query my-extension      # details about one extension
-panasaurus -remove my-extension     # uninstall
-panasaurus -rerun-install           # refresh symlinks + caches (fixes 404 assets)
-```
+## The CLI
 
-From the host, no shell inside the container needed:
+The `panasaurus` binary inside the container manages extensions directly (it is also available as `blueprint` for muscle memory):
 
 ```bash
-cd /opt/panasaurus/panel
-docker compose cp ./my-extension.blueprint panel:/app/
-docker compose exec panel panasaurus -install my-extension
+docker compose exec panel panasaurus -install extension.blueprint   # install a file
+docker compose exec panel panasaurus -list                          # list installed extensions
+docker compose exec panel panasaurus -remove extension              # remove an extension
+docker compose exec panel panasaurus -help                          # everything else
 ```
 
-## How it works
+A typical workflow from the marketplace page: download or reference the `.blueprint` file, install it, then reload the admin area. The CLI wires up backend routes, admin views, and frontend extension points automatically — the panel's React app exposes the same extension slots Blueprint users already know, so no rebuild is required.
 
-```text
-my-extension.blueprint         ← zip archive with a conf.yml + assets
-        │  panasaurus -install <file>
-        ▼
-.blueprint/extensions/<id>/    ← installed extension lives here
-        │  symlinked into
-        ├── public/extensions/<id>        (public files)
-        ├── public/assets/extensions/<id> (styles/images)
-        ├── resources/views/blueprint/admin/wrappers/... (admin UI)
-        └── resources/scripts/blueprint/...              (client UI, rebuilt)
+## Writing your own
+
+Panasaurus keeps full compatibility with the Blueprint extension format. Start with the [Blueprint developer guides](https://blueprint.zip/guides); the panel repository also bundles reference material in [`docs/EXTENSIONS.md`](https://github.com/panasaurus/panel/blob/main/docs/EXTENSIONS.md).
+
+A few Panasaurus-specific notes:
+
+- The frontend is React 19 with Vite; extension frontend additions register through the Blueprint routes registry rather than patching compiled bundles.
+- The `Pterodactyl\` PHP namespace is preserved on purpose — it is what keeps the existing extension ecosystem working.
+- Extensions live under `data/extensions/` on the host, so they survive container recreation and are part of your normal backup routine.
+
+## Troubleshooting
+
+If an extension breaks the panel, remove it from the CLI and restart:
+
+```bash
+docker compose exec panel panasaurus -remove broken-extension
+docker compose restart panel
 ```
 
-Installing rebuilds the frontend assets automatically — the panel runs Vite, not the old webpack pipeline, so extension assets compile with the same toolchain as the core UI.
-
-## CLI reference
-
-The CLI lives inside the container as both `panasaurus` and `blueprint`:
-
-| Command | Description |
-|---|---|
-| `panasaurus -install <name>` | Install/update an extension from a `.blueprint` file in the panel root |
-| `panasaurus -remove <name>` | Remove an installed extension |
-| `panasaurus -query <name>` | Show information about an installed extension |
-| `panasaurus -list` | List installed extensions |
-| `panasaurus -init` | Scaffold a new extension project (developer mode) |
-| `panasaurus -build` | Build an extension from source |
-
-## Extension surface in Panasaurus
-
-### Admin (Blade)
-
-- `/admin/extensions` — extension manager (list, configure, update)
-- `/admin/extensions/marketplace` — built-in marketplace with the live Blueprint directory
-- Admin sidebar **Extensions** section
-- `blueprint.admin.wrappers` — extension blade wrappers render into every admin page
-
-### Client (React 19)
-
-Extension components mount around the panel's UI through placeholder files in `resources/scripts/blueprint/components/`:
-
-| Placeholder | Renders |
-|---|---|
-| `Dashboard/Global/BeforeSection,AfterSection` | Around the entire dashboard |
-| `Dashboard/Serverlist/BeforeContent,AfterContent` | Around the server list |
-| `Navigation/NavigationBar/Before,AfterNavigation` | Around the dashboard sidebar nav |
-| `Navigation/SubNavigation/AdditionalAccountItems` | Extra account nav items |
-| `Server/Terminal/Before,AfterContent,AdditionalPowerButtons,CommandRow` | Console page |
-| `Server/Backups,Databases,Files,Network,Settings,Startup,Users/Before,After` | Around each server page |
-| `Account/API,Overview,SSH/Before,After` | Account pages |
-
-Routes are registered through `resources/scripts/blueprint/extends/routers/routes.ts` (account + server routes, with per-route permissions and admin-only flags).
-
-### Backend (PHP)
-
-- `app/BlueprintFramework/Libraries/ExtensionLibrary/` — `dbGet`/`dbSet`, template helpers, console APIs
-- Console commands, models, and services under `app/BlueprintFramework/`
-- Scheduled tasks (`bp:version:cache`, `bp:meta`, extension schedules) run through the panel's scheduler
-
-## Building your own
-
-Start with `panasaurus -init` inside the container — it scaffolds a working extension you can iterate on. The upstream guides at [blueprint.zip/guides](https://blueprint.zip/guides) cover the extension format in depth, and [`docs/EXTENSIONS.md`](https://github.com/panasaurus/panel/blob/main/docs/EXTENSIONS.md) in the panel repository documents the Panasaurus-specific surface in full.
-
-Publish what you build: the [marketplace page](/docs/marketplace) explains where extensions and eggs are listed.
+Because `data/extensions` is a host mount, a broken extension never gets baked into the image — wiping the directory is always a safe escape hatch after a backup.

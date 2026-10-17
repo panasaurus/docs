@@ -1,0 +1,105 @@
+---
+title: Wings configuration
+description: Reference for /etc/panasaurus/config.yml — panel connection, API listener, storage, SFTP, Docker, and backups.
+sidebar_label: Wings configuration
+---
+
+# Wings configuration
+
+Wings reads a single YAML file, by default `/etc/panasaurus/config.yml`. The installer generates it for you with the daemon's own `--configure` command, so most operators only ever touch it to change the listener, add TLS, or tune resource behavior. After any edit:
+
+```bash
+systemctl restart panasaurus-wings
+```
+
+:::tip Regenerating safely
+`panasaurus-wings --configure` refuses to overwrite an existing config. To rebuild one, move the old file aside first — or pass `--override` if your build supports it. Hand edits survive, because the file is only rewritten when you ask.
+:::
+
+## Panel connection
+
+These keys are written by `--configure` from the values you passed the installer:
+
+```yml
+remote: https://panel.example.com   # panel URL
+token_id: ...                       # from the panel's node record
+token: ...                          # application API credentials
+```
+
+The node connection URL captured by `--node-url` becomes the daemon's JWT audience: **it must match the node's connection address in the panel exactly, including scheme and port**. If you change the node's address in the panel later, re-run the configure step with the new URL — a stale audience is the classic cause of panel-daemon authentication failures.
+
+## API listener
+
+```yml
+api:
+  host: 0.0.0.0
+  port: 8080
+  ssl:
+    enabled: false
+    cert: /etc/panasaurus/tls/fullchain.pem
+    key: /etc/panasaurus/tls/privkey.pem
+    ktls_enabled: false        # kernel TLS offload
+  upload_limit: 100            # upload size limit, MiB
+  max_jwt_uses: 5              # reuses allowed per download JWT until expiry
+  trusted_proxies: []          # CIDRs trusted for X-Forwarded-For
+```
+
+TLS has its own page — [native TLS and ACME](/docs/wings/tls) — including Panasaurus additions such as `api.ssl.acme_domain`, `acme_email`, and `acme_production` for automatic Let's Encrypt certificates over TLS-ALPN.
+
+Useful hardening options on the same block: `disable_openapi_docs: true` hides the `/openapi.json` document, and `redirects` maps API paths elsewhere — commonly `/: https://panel.example.com` so a stray browser visit lands on the panel.
+
+## Storage and SFTP
+
+```yml
+system:
+  data: /var/lib/panasaurus    # server data root — must be an absolute path Docker can reach
+  sftp:
+    enabled: true
+    bind_address: 0.0.0.0
+    bind_port: 2022
+    key_algorithm: ssh-ed25519
+```
+
+The data path matters more than it looks: containers mount their volumes from it, so it must be an absolute path and it should live on filesystem with enough space for every server you plan to host. SFTP authentication, host key handling, and its rate limits are covered on the [SFTP page](/docs/wings/sftp).
+
+## Docker
+
+```yml
+docker:
+  socket: /var/run/docker.sock
+  delete_container_on_stop: true     # containers are recreated from the image on boot
+  network:
+    interfaces:
+      v4:
+        enabled: true
+      v6:
+        enabled: true
+  installer_limits:
+    timeout: 1800                    # seconds before an install container is failed
+```
+
+`delete_container_on_stop` is on by default: stopped servers do not hold containers, which keeps idle CPU at zero and makes image changes apply on the next start. Turn it off only if a specific egg depends on persistent container state.
+
+## Backups
+
+Wings ships several backup drivers; the panel selects which one a node uses:
+
+| Driver | Notes |
+|--------|-------|
+| `wings` | Local archives — tar, zip, or 7z, with `tar_gz` as the default format |
+| `s3` | Any S3-compatible store, with streaming uploads when the panel supports it |
+| `ddup-bak` | Content-addressed chunked backups, zstd-compressed |
+| `btrfs` / `zfs` | Snapshot-based, near-instant restores on matching filesystems |
+| `restic` | Delegates to an existing restic repository |
+| `pbs` | Proxmox Backup Server |
+
+Tuning lives under `system.backups` — compression level, per-driver thread counts, and the `mounting` option that makes backups browsable in the web file manager.
+
+## Disk limits
+
+```yml
+system:
+  disk_limiter_mode: none      # none, btrfs_subvolume, zfs_dataset, xfs_quota
+```
+
+By default Wings only *reports* disk usage. With a limiter mode set, quotas are actually enforced at the filesystem level — `btrfs_subvolume` and `zfs_dataset` per server, `xfs_quota` via project quotas. An inotify-backed scanner keeps usage counts fresh without full rescans (`disk_check_use_inotify`, with `full_disk_check_every` as the safety net).

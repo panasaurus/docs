@@ -1,7 +1,7 @@
 {
   "name": "panasaurus-docs",
   "version": "1.0.0",
-  "description": "Panasaurus documentation - the dino-strong game server platform",
+  "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
@@ -15,12 +15,28 @@
   },
   "dependencies": {
     "@docusaurus/core": "^3.10.2",
-    "@docusaurus/module-type-aliases": "^3.10.2",
-    "@docusaurus/plugin-client-redirects": "^3.10.2",
     "@docusaurus/preset-classic": "^3.10.2",
-    "@docusaurus/types": "^3.10.2",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "@mdx-js/react": "^3.0.1",
+    "clsx": "^2.1.1",
+    "prism-react-renderer": "^2.4.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
-  "private": true
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "^3.10.2",
+    "@docusaurus/tsconfig": "^3.10.2",
+    "@docusaurus/types": "^3.10.2",
+    "typescript": "^5.8.3"
+  },
+  "browserslist": {
+    "production": [">0.5%", "not dead", "not op_mini all"],
+    "development": [
+      "last 3 chrome version",
+      "last 3 firefox version",
+      "last 5 safari version"
+    ]
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
 }

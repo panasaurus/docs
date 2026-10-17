@@ -1,0 +1,105 @@
+---
+title: Panel installation
+description: Install the Panasaurus panel with the automated installer or a manual Docker Compose stack.
+sidebar_label: Install the panel
+---
+
+# Panel installation
+
+The panel ships as a Docker Compose stack: the panel image itself, MariaDB for state, and Redis for cache, sessions, and queues. There is no bare-metal installation path — the panel is built via Docker and installed via Docker, which is also what keeps upgrades to a single command.
+
+## Requirements
+
+- Ubuntu 22.04+ or Debian 12 (any apt-based distribution with systemd works)
+- Root or sudo access
+- 2 GB of RAM minimum for the compose stack
+- Ports 80 and 443 free (or the custom port you pass to `--port`)
+
+## Option A — the automated installer
+
+```bash
+bash install.sh --panel
+```
+
+That is the whole installation. Behind the scenes the installer:
+
+1. Installs Docker and the Compose plugin if they are missing
+2. Downloads `panel.tar.gz` from the [panel releases](https://github.com/panasaurus/panel/releases) and verifies it against the published `CHECKSUM`
+3. Extracts the stack into `/opt/panasaurus/panel`
+4. Generates strong MariaDB credentials and an initial admin password, and writes them into `docker-compose.yml`
+5. Starts the stack and polls `GET /api/health` until it reports healthy
+6. Opens ports 80 and 443 in your firewall (unless `--no-firewall`)
+
+When it finishes you get the panel URL, the admin email, and a **one-time admin password**:
+
+```text
+Panasaurus panel setup finished
+
+URL:      http://203.0.113.10
+Admin:    admin@panasaurus.local
+Password: 4f1c9a2b7e8d
+```
+
+:::warning Save the password
+The initial admin password is generated once and printed once. Log in and change it from the account page immediately.
+:::
+
+Customize the run with flags — for example, a domain and a specific admin account:
+
+```bash
+bash install.sh --panel --panel-url https://panel.example.com \
+  --admin-email ops@example.com
+```
+
+## Option B — manual Docker Compose
+
+If you would rather see every moving part, download a release and run the stack yourself:
+
+```bash
+mkdir -p /opt/panasaurus/panel && cd /opt/panasaurus/panel
+curl -fsSLO https://github.com/panasaurus/panel/releases/latest/download/panel.tar.gz
+curl -fsSLO https://github.com/panasaurus/panel/releases/latest/download/CHECKSUM
+sha256sum -c CHECKSUM
+tar -xzf panel.tar.gz --strip-components=1
+```
+
+Open `docker-compose.yml` and fill in the placeholders:
+
+| Placeholder | Purpose |
+|-------------|---------|
+| `CHANGE_ME_PLEASE` | MariaDB application password (`MYSQL_PASSWORD` and `DB_PASSWORD` must stay identical) |
+| `CHANGE_ME_TOO_PLEASE` | MariaDB root password |
+| `APP_URL` | The public URL users will visit |
+| `PANASAURUS_ADMIN_EMAIL` / `_USERNAME` / `_PASSWORD` | Uncomment to seed the initial admin account on first boot |
+
+Then bring it up:
+
+```bash
+docker compose up -d
+docker compose logs -f panel   # watch the first boot migrate and seed
+```
+
+First boot applies migrations and seeds the Blueprint framework automatically. If you did not set the admin environment variables, create the first admin account inside the container:
+
+```bash
+docker compose exec panel php artisan user:create
+```
+
+## First steps after login
+
+1. Change the admin password.
+2. Set your location and create a node under **Admin → Nodes** — the [Wings installation](/docs/wings/installation) walks through this.
+3. Import eggs from the [eggs marketplace](https://eggs.panasaurus.com) under **Admin → Nests**.
+4. Review the [panel configuration](/docs/panel/configuration) page for mail, HTTPS, and timezone settings.
+
+## Updating
+
+Pull the new images and restart — migrations run on boot:
+
+```bash
+cd /opt/panasaurus/panel
+docker compose pull
+docker compose up -d
+```
+
+Or simply re-run `bash install.sh --panel`: it detects the existing installation, keeps your configuration and data, and refreshes the running stack. Back up the `data/` directory before major version upgrades.

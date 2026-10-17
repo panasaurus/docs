@@ -1,0 +1,89 @@
+---
+title: Wings TLS and ACME
+description: Native TLS on the Wings API listener, Panasaurus ACME support over TLS-ALPN, and running Wings behind a reverse proxy.
+sidebar_label: TLS and certificates
+---
+
+# Wings TLS and certificates
+
+The panel needs to reach Wings over the node's connection URL, and if that URL starts with `https://` the connection must actually be TLS — with a certificate the panel's HTTP client accepts. You have three ways to get there; pick one.
+
+## Option 1 — ACME (automatic certificates)
+
+Panasaurus Wings can obtain and renew its own certificate using the ACME TLS-ALPN challenge, which needs nothing but the daemon's own listener:
+
+```yml
+api:
+  host: 0.0.0.0
+  port: 443
+  ssl:
+    enabled: true
+    acme_domain: node.example.com
+    acme_email: you@example.com
+    acme_production: false
+```
+
+| Key | Meaning |
+|-----|---------|
+| `acme_domain` | The hostname to request a certificate for. It must resolve publicly to this node. |
+| `acme_email` | Contact address registered with Let's Encrypt. |
+| `acme_production` | `false` (the default) uses the **Let's Encrypt staging** environment. Set it to `true` once you have confirmed issuance works. |
+
+:::warning Two things that bite people
+The TLS-ALPN challenge requires the listener to be reachable on **port 443** — set `api.port: 443` and open it in your firewall. And staging certificates are *not* trusted by browsers or by the panel's TLS validation; they exist so you can prove your DNS and port setup work without burning Let's Encrypt rate limits. Flip `acme_production: true` and restart when the staging run succeeds.
+:::
+
+After enabling, update the node's connection URL in the panel to `https://node.example.com:443` (or leave the port off, since 443 is the default scheme port) and restart the daemon.
+
+## Option 2 — bring your own certificate
+
+If you already run a certificate infrastructure — certbot, Caddy's internal PKI, a wildcard from your provider — hand the files to the daemon:
+
+```yml
+api:
+  port: 8080
+  ssl:
+    enabled: true
+    cert: /etc/panasaurus/tls/fullchain.pem
+    key: /etc/panasaurus/tls/privkey.pem
+```
+
+The daemon reads both files on startup, so renewals just need a `systemctl restart panasaurus-wings` — or wire one into your renewal hook. Permissions matter: the files must be readable by the service user, but the private key should not be world-readable (mode `0640` is a reasonable middle ground).
+
+For fully private networks, `ktls_enabled: true` offloads symmetric crypto to the kernel where the kernel supports it — a free throughput win on busy nodes.
+
+## Option 3 — reverse proxy
+
+Terminate TLS in front of the daemon and let Wings speak plain HTTP on localhost:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name node.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/node.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/node.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+The `Upgrade` headers are not optional — the panel drives consoles and file transfers over websockets, and a proxy that drops them produces consoles that connect and immediately die. With Caddy the equivalent is a two-line site block; it handles certificates and upgrade headers automatically.
+
+If you proxy from a private network, also add your proxy's IP range to `api.trusted_proxies` so the daemon logs real client addresses instead of the proxy's.
+
+## Checking your work
+
+Whichever path you take, the test is the same — from the panel's machine, or at least from outside:
+
+```bash
+curl -v https://node.example.com:8080/openapi.json -o /dev/null
+```
+
+A trusted certificate with a JSON body means done. `SSL certificate problem` means the panel will reject the node too — fix the certificate, not the panel.

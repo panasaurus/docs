@@ -1,5 +1,19 @@
-node_modules/
-build/
-.docusaurus/
-*.log
+# Dependencies
+/node_modules
+
+# Production build
+/build
+.docusaurus
+
+# Generated type files
+src/types.d.ts
+
+# Environment
+.env
+.env.local
+
+# Editors and OS noise
 .DS_Store
+*.log
+.idea
+.vscode
