@@ -1,3 +1,4 @@
+
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
 # Panasaurus installer — Panel + Wings
@@ -7,12 +8,13 @@
 #
 # Examples:
 #   bash install.sh --panel
+#   bash install.sh --panel --port 8080
 #   bash install.sh --wings \
 #     --panel-url https://panel.example.com \
 #     --node-url https://node.example.com:8081 \
 #     --token YOUR_APPLICATION_API_KEY \
 #     --node 1
-#   bash install.sh --both
+#   bash install.sh --both --port 8080
 #   bash install.sh --wings --version v1.2.0
 #
 # Panel releases:
@@ -49,7 +51,14 @@ NO_FIREWALL=0
 PANEL_URL=""
 NODE_URL=""
 
-PANEL_PORT="${PANEL_PORT:-80}"
+# Allow PANEL_PORT to be supplied through the environment.
+if [ -n "${PANEL_PORT:-}" ]; then
+  PANEL_PORT_EXPLICIT=1
+else
+  PANEL_PORT=80
+  PANEL_PORT_EXPLICIT=0
+fi
+
 ADMIN_EMAIL="${PANASAURUS_ADMIN_EMAIL:-admin@panasaurus.local}"
 ADMIN_USERNAME="${PANASAURUS_ADMIN_USERNAME:-admin}"
 INSTALL_DIR="${PANASAURUS_INSTALL_DIR:-/opt/panasaurus/panel}"
@@ -120,7 +129,7 @@ Options:
   --node-url URL        Public node connection URL (Wings)
   --token KEY           Application API key (Wings)
   --node ID             Numeric panel node ID
-  --port PORT           Panel host port (default: 80)
+  --port PORT           Panel host port (prompted; default: 80)
   --admin-email EMAIL   Initial admin email
   --install-dir DIR     Panel installation directory
   --version TAG         Release tag (default: latest)
@@ -130,11 +139,16 @@ Options:
   --yes, -y             Accept defaults
   --help, -h            Show this help
 
+The panel port is the host-side Docker Compose port. For example,
+--port 8080 maps host port 8080 to container port 80.
+
 Wings requires a node URL matching the panel's node connection address,
 including the port. For a remote API, configure TLS or a TLS reverse proxy.
 
 Examples:
   bash install.sh --panel
+  bash install.sh --panel --port 8080
+  bash install.sh --panel --port 8080 --yes
   bash install.sh --wings \
     --panel-url https://panel.example.com \
     --node-url https://node.example.com:8081 \
@@ -161,6 +175,18 @@ ask() {
   IFS= read -r answer < /dev/tty || answer=""
   [ -z "$answer" ] && answer="$default"
   printf '%s\n' "$answer"
+}
+
+validate_panel_port() {
+  case "$PANEL_PORT" in
+    ''|*[!0-9]*)
+      die "Panel port must be a number between 1 and 65535."
+      ;;
+  esac
+
+  if [ "$PANEL_PORT" -lt 1 ] || [ "$PANEL_PORT" -gt 65535 ]; then
+    die "Panel port must be between 1 and 65535."
+  fi
 }
 
 # --- downloads --------------------------------------------------------------
@@ -285,6 +311,57 @@ firewall_open() {
   fi
 }
 
+# --- Panel port configuration ----------------------------------------------
+
+configure_panel_port() {
+  local compose_file="$1"
+  local backup_file="${compose_file}.port-backup"
+  local pattern
+  local before after
+
+  # Supported short-form examples:
+  #   - "80:80"
+  #   - "127.0.0.1:80:80"
+  #   - "0.0.0.0:80:80"
+  #
+  # The host port is changed. The container port remains 80.
+  # Long-form Compose mappings and environment-variable mappings are
+  # deliberately rejected rather than silently misconfigured.
+
+  pattern="^[[:space:]]*-[[:space:]]*[\"']?([^[:space:]#]+:)?[0-9]+:80[\"']?([[:space:]]*(#.*)?)?$"
+
+  if ! grep -Eq "$pattern" "$compose_file"; then
+    die "Could not find a supported HTTP port mapping in ${compose_file}. Back up the file and configure its published host port manually."
+  fi
+
+  # Preserve a backup before modifying the Compose file.
+  cp -p "$compose_file" "$backup_file"
+
+  before="$(sha256sum "$compose_file" | awk '{print $1}')"
+
+  if ! sed -i -E \
+    "/${pattern}/s/([\"']?([^[:space:]#]+:)?)[0-9]+(:80[\"']?([[:space:]]*(#.*)?)?)$/\\1${PANEL_PORT}\\3/" \
+    "$compose_file"; then
+    cp -p "$backup_file" "$compose_file"
+    die "Failed to update the panel port mapping."
+  fi
+
+  after="$(sha256sum "$compose_file" | awk '{print $1}')"
+
+  if ! grep -Eq "$pattern" "$compose_file"; then
+    cp -p "$backup_file" "$compose_file"
+    die "The updated Docker Compose file has no supported HTTP mapping. Original file restored."
+  fi
+
+  rm -f "$backup_file"
+
+  if [ "$before" != "$after" ]; then
+    ok "Docker Compose HTTP host port set to ${PANEL_PORT}."
+  else
+    ok "Docker Compose HTTP mapping already uses the selected port."
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # Panel installation
 # ---------------------------------------------------------------------------
@@ -295,6 +372,14 @@ install_panel() {
   local db_password db_root_password admin_password attempts
 
   info "Installing panel into ${app_dir} .."
+
+  # Ask for the host port unless it was supplied through --port or
+  # the PANEL_PORT environment variable.
+  if [ "$PANEL_PORT_EXPLICIT" -eq 0 ]; then
+    PANEL_PORT="$(ask "Panel host port" "$PANEL_PORT")"
+  fi
+
+  validate_panel_port
 
   if [ ! -f "${app_dir}/docker-compose.yml" ]; then
     mkdir -p "$app_dir"
@@ -382,7 +467,10 @@ install_panel() {
     ok "Existing configuration detected."
   fi
 
+  # Apply the requested host port before Compose starts the containers.
+  configure_panel_port "$compose_file"
   export PANEL_PORT
+
   cd "$app_dir"
 
   info "Pulling Docker images .."
@@ -408,18 +496,17 @@ install_panel() {
     ok "Panel is healthy."
   fi
 
-  firewall_open 80
+  # Only the selected HTTP port is opened for the panel.
+  # HTTPS remains open for a reverse proxy or HTTPS endpoint.
+  firewall_open "$PANEL_PORT"
   firewall_open 443
-
-  if [ "$PANEL_PORT" != 80 ] && [ "$PANEL_PORT" != 443 ]; then
-    firewall_open "$PANEL_PORT"
-  fi
 
   cat <<EOF
 
 ${C_GREEN}${C_BOLD}Panasaurus panel setup finished${C_RESET}
 
 URL:      ${PANEL_URL}
+Port:     ${PANEL_PORT}
 Admin:    ${ADMIN_EMAIL}
 Password: ${admin_password}
 
@@ -565,7 +652,6 @@ install_wings() {
   printf 'SHA-256: %s\n' "$(sha256sum "$bin_path" | awk '{print $1}')"
 
   # 5. Set up node storage.
-  # The node data path must be absolute and accessible to Docker.
   data_dir="${WINGS_LIB}/data"
   mkdir -p "$data_dir"
   chmod 0750 "$WINGS_LIB" "$data_dir"
@@ -610,8 +696,6 @@ install_wings() {
 
     info "Generating Wings configuration .."
 
-    # The documented configure command requires the destination config not
-    # to exist. The token is passed through the environment, not argv.
     "$bin_path" --configure \
       --panel-url "$PANEL_URL" \
       --node-id "$WINGS_NODE" \
@@ -629,7 +713,6 @@ install_wings() {
   fi
 
   # 7. Ensure the operator-configured storage path is absolute.
-  #    Do not overwrite the system.data path from an existing config.
   if ! grep -Eq '^[[:space:]]*data:' "$WINGS_CONFIG"; then
     warn "Review system.data in ${WINGS_CONFIG}; it must be an absolute path accessible to Docker."
   fi
@@ -734,7 +817,9 @@ while [ $# -gt 0 ]; do
       ;;
     --port)
       [ $# -ge 2 ] || die "--port requires a value."
-      PANEL_PORT="$2"; shift
+      PANEL_PORT="$2"
+      PANEL_PORT_EXPLICIT=1
+      shift
       ;;
     --admin-email)
       [ $# -ge 2 ] || die "--admin-email requires a value."
@@ -775,6 +860,11 @@ case "$RELEASE_VERSION" in
   latest|v[0-9]*|[0-9]*) ;;
   *) die "Invalid release version: ${RELEASE_VERSION}" ;;
 esac
+
+# Validate explicit ports before starting the installation.
+if [ "$PANEL_PORT_EXPLICIT" -eq 1 ]; then
+  validate_panel_port
+fi
 
 # ---------------------------------------------------------------------------
 # Main
