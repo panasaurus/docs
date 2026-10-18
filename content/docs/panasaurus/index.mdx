@@ -1,50 +1,50 @@
 ---
 title: Panasaurus Documentation
-description: A Docker-native game server management platform — panel, Rust Wings daemon, and images, designed to run together
+description: A game server management platform consisting of a Docker-native panel, a Rust Wings daemon, and maintained container images.
 ---
 
 
-Panasaurus is a game server management platform built on the proven Pterodactyl and Pyrodactyl lineage, rebuilt with a modern stack and shipped as three parts that are designed to run together — but drop into almost any existing setup:
+Panasaurus is a game server management platform built on the Pterodactyl and Pyrodactyl lineage. It consists of three core components:
 
-| Component | What it is | Where it lives |
-|-----------|------------|----------------|
-| **Panel** | Laravel 12 + React 19 control plane with the Blueprint extension framework pre-installed. Runs entirely in Docker — installed via Docker, extended via Docker. | [github.com/panasaurus/panel](https://github.com/panasaurus/panel) |
-| **Wings** | The node daemon, rewritten in Rust. Drop-in compatible with the Wings v1.13.3 HTTP API the panel speaks, with native TLS, multi-driver backups, and per-server bandwidth limits. | [github.com/panasaurus/wings](https://github.com/panasaurus/wings) |
-| **Images** | The core container images (the yolks) — Java, Node.js, Python, Go, Rust, games, and installers, published multi-arch to a single GHCR repository. | `ghcr.io/panasaurus/images` |
+| Component | Description | Location |
+|-----------|-------------|----------|
+| **Panel** | Laravel 12 + React 19 control plane with the Blueprint extension framework pre-installed. Deployed via Docker Compose. | [github.com/panasaurus/panel](https://github.com/panasaurus/panel) |
+| **Wings** | The node daemon, written in Rust. Compatible with the panel's remote API, featuring native TLS and integrated SFTP server. | [github.com/panasaurus/wings](https://github.com/panasaurus/wings) |
+| **Images** | Core container bases for Java, Node.js, Python, Go, Rust, and game servers published to a single GHCR namespace. | `ghcr.io/panasaurus/images` |
 
-Everything is glued together by one installer: `install.sh` sets up the panel, Wings, or both on a fresh apt-based server with a single command.
+An installer script (`install.sh`) automates deploying the panel, Wings, or both on Debian/Ubuntu systems.
 
 <Cards>
   <Card title="Automated installation" href="/docs/panasaurus/automated">
-    The install.sh reference — flags, paths, and what it changes on your system
+    The install.sh reference — flags, options, and actions
   </Card>
   <Card title="Install the panel" href="/docs/panasaurus/installation">
-    One command, or a manual Docker Compose stack if you prefer
+    Automated script or manual Docker Compose setup
   </Card>
   <Card title="Install Wings" href="/docs/wings/installation">
-    Set up a node and connect it to your panel
+    Set up a node daemon and connect it to your panel
   </Card>
   <Card title="Eggs marketplace" href="https://eggs.panasaurus.com" external>
-    Ready-made eggs for popular games, tested against current releases
+    Eggs for popular games, tested for Panasaurus
   </Card>
 </Cards>
 
-## Why Panasaurus
+## Key Features
 
-- **Blueprint built in.** The extension framework ships pre-installed — no patching, no version drift. Community extensions for Blueprint and Pterodactyl work out of the box, and the admin area has a built-in marketplace with search and one-click install instructions.
-- **Docker all the way down.** The panel is a multi-stage container image with healthchecks and tuned PHP-FPM. Wings manages server containers over the Docker socket. Your host stays clean; your stack stays reproducible.
-- **A daemon that keeps up.** Wings in Rust means faster cold starts, lower idle memory, and an OpenAPI document for every endpoint at `/openapi.json` instead of guessing from the panel source.
-- **One image namespace.** Every core image lives in `ghcr.io/panasaurus/images` under a single tag scheme, so eggs, retention policies, and access control stay simple.
+- **Built-in Blueprint support.** The Blueprint extension framework ships pre-installed in the panel image. Extensions run without manual file patching, and the admin panel includes an extension marketplace.
+- **Containerized architecture.** The panel runs in a multi-stage Docker container stack. Wings communicates directly with the host Docker daemon to manage game server instances.
+- **High-performance Rust node daemon.** Wings is implemented in Rust using Tokio and Axum for low resource overhead and fast container operations.
+- **Unified container image namespace.** All official runtime images live under `ghcr.io/panasaurus/images`.
 
 ## Quick start
 
-On a fresh Ubuntu 22.04+ or Debian 12 machine, as root:
+On a fresh Ubuntu 22.04+ or Debian 12 machine as root:
 
 ```bash
 curl -fsSL https://panasaurus.com/install.sh | bash
 ```
 
-You will be asked whether to install the panel, Wings, or both. The installer handles Docker, generates credentials, writes the systemd unit, and waits for health checks. Prefer explicit flags?
+Choose whether to install the panel, Wings, or both. For non-interactive deployment, pass flags directly:
 
 ```bash
 bash install.sh --panel
@@ -52,16 +52,10 @@ bash install.sh --wings --panel-url https://panel.example.com \
   --node-url https://node.example.com:8081 --token YOUR_API_KEY --node 1
 ```
 
-The full flag reference is on the [installer page](/docs/panasaurus/automated). Panel setup continues in [Panel installation](/docs/panasaurus/installation), node setup in [Wings installation](/docs/wings/installation).
+See [Automated installer](/docs/panasaurus/automated), [Panel installation](/docs/panasaurus/installation), and [Wings installation](/docs/wings/installation) for full documentation.
 
-## Eggs and community
+## Community & Credits
 
-Ready-made eggs for popular games are published at the [eggs marketplace](https://eggs.panasaurus.com) — download an `.egg` file, import it from **Admin → Nests**, and deploy. If something breaks or you want to request an egg, join the [Panasaurus Discord](https://discord.gg/tszvW9zKN7); the installer and these docs point there too.
-
-## Credits
-
-Panasaurus stands on the shoulders of giants:
-
-- [Pterodactyl](https://pterodactyl.io) — the original panel, by Dane Everitt and contributors
-- [Pyrodactyl](https://pyrodactyl.dev) — the modernized fork the panel builds on
-- [Blueprint](https://blueprint.zip) — the extension framework, by prpl.wtf and contributors
+- [Eggs marketplace](https://eggs.panasaurus.com): Community game eggs.
+- [Discord](https://discord.gg/tszvW9zKN7): Community support and development discussion.
+- Built on work by [Pterodactyl](https://pterodactyl.io), [Pyrodactyl](https://pyrodactyl.dev), and [Blueprint](https://blueprint.zip).

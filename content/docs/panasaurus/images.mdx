@@ -1,38 +1,39 @@
 ---
 title: Panasaurus Images
-description: Core container images for the Panasaurus platform — every image in one GHCR repository, rebuilt monthly, multi-arch.
+description: Container runtime images for Panasaurus game servers, built for linux/amd64 and linux/arm64.
 ---
 
 
-Panasaurus Images is the evolution of Pterodactyl's yolks: the core container images eggs run on, rebuilt monthly against maintained bases and published to a **single** registry namespace — `ghcr.io/panasaurus/images`. Eggs reference one image namespace, retention policies apply uniformly, and every image builds for `linux/amd64` and `linux/arm64` unless noted otherwise.
+Panasaurus Images provides maintained container images for game servers and runtimes under a single registry namespace: `ghcr.io/panasaurus/images`.
 
 ```bash
 docker pull ghcr.io/panasaurus/images:java_21
 ```
 
-## What is available
+## Available Images
 
-All images live in one GHCR repository and are distinguished by tag:
+Images live in one GitHub Container Registry repository and are identified by tag:
 
-| Group | Examples |
-|-------|----------|
-| Java (Temurin + OpenJ9) | `java_8` … `java_26`, `*_j9` variants, `java_latest` |
+| Runtime / Category | Tags |
+|--------------------|------|
+| Java (Temurin / OpenJ9) | `java_8` … `java_26`, `*_j9` variants, `java_latest` |
 | Node.js | `nodejs_12` … `nodejs_24`, `nodejs_latest` |
 | Python | `python_3.7` … `python_3.13`, `python_latest` |
 | Go | `go_1.14` … current, `go_latest` |
-| Rust / .NET | `rust`, `dotnet_7`, `dotnet_8`, `dotnet_9` |
-| Base OS | `alpine`, `debian` |
+| Rust & .NET | `rust`, `dotnet_7`, `dotnet_8`, `dotnet_9` |
+| Operating System | `alpine`, `debian` |
 | Games | `rust`, `source`, `hytale`, `conan_exiles` |
-| Installers | `installer_*` variants used by egg install scripts |
+| Installers | `installer_*` tags for egg installation scripts |
 
-The full, always-current table lives in the [images repository](https://github.com/panasaurus/images). New language releases are added as they ship — when Java 26 came out of preview it appeared as `java_26` without any panel change.
+Refer to the [images repository](https://github.com/panasaurus/images) for a full listing of active tags and Dockerfiles.
 
-## How it is built
+## Build and Maintenance
 
-One merged CI pipeline builds everything: a lint stage (hadolint, shellcheck) gates every Dockerfile and entrypoint, a paths filter builds only what changed, and dependent images build in a second wave — so `hytale` always waits for a fresh `java_25` instead of silently reusing an old base. The image matrix is machine-readable (`.github/images.json`) with a consistency checker in CI, so a Dockerfile and its entry in the matrix cannot drift apart.
+Images are built via GitHub Actions CI:
+- Dockerfiles and entrypoint scripts are validated with `hadolint` and `shellcheck`.
+- Multi-architecture images are built and pushed for `linux/amd64` and `linux/arm64`.
+- Image definitions are configured in `.github/images.json`.
 
-Eggs stay out of the build path entirely: they reference whatever tag suits them, and the panel's bundled eggs already point at `ghcr.io/panasaurus/images`.
+## Migrating Image Tags
 
-## Switching an existing setup
-
-Existing Pterodactyl or Pelican nodes can pull the same images by name — the tags are drop-in equivalents of the old `ghcr.io/pterodactyl/yolks:*` naming. To migrate in bulk, see [Migrating to Panasaurus](/docs/panasaurus/migration), which includes the SQL one-liner for rewriting egg image references on an existing panel, plus a mapping table of old tag to new tag.
+Eggs referencing legacy `ghcr.io/pterodactyl/yolks:*` image tags can be updated to `ghcr.io/panasaurus/images:*`. See the [migration guide](/docs/panasaurus/migration) for SQL update scripts.

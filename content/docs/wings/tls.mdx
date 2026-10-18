@@ -1,14 +1,14 @@
 ---
 title: Wings TLS and ACME
-description: Native TLS on the Wings API listener, Panasaurus ACME support over TLS-ALPN, and running Wings behind a reverse proxy.
+description: Native TLS on the Wings API listener, Let's Encrypt ACME support over TLS-ALPN, or running Wings behind a reverse proxy.
 ---
 
 
-The panel needs to reach Wings over the node's connection URL, and if that URL starts with `https://` the connection must actually be TLS — with a certificate the panel's HTTP client accepts. You have three ways to get there; pick one.
+The panel needs to reach Wings over the node's connection URL. If that URL starts with `https://`, the API listener on Wings must present a valid TLS certificate accepted by the panel.
 
-## Option 1 — ACME (automatic certificates)
+## Option 1 — Automatic ACME certificates (TLS-ALPN)
 
-Panasaurus Wings can obtain and renew its own certificate using the ACME TLS-ALPN challenge, which needs nothing but the daemon's own listener:
+Wings supports obtaining and renewing certificates automatically via Let's Encrypt using the TLS-ALPN challenge:
 
 ```yml
 api:
@@ -17,47 +17,41 @@ api:
   ssl:
     enabled: true
     acme_domain: node.example.com
-    acme_email: you@example.com
+    acme_email: admin@example.com
     acme_production: false
 ```
 
 | Key | Meaning |
 |-----|---------|
-| `acme_domain` | The hostname to request a certificate for. It must resolve publicly to this node. |
-| `acme_email` | Contact address registered with Let's Encrypt. |
-| `acme_production` | `false` (the default) uses the **Let's Encrypt staging** environment. Set it to `true` once you have confirmed issuance works. |
+| `acme_domain` | The public FQDN pointing to this node. |
+| `acme_email` | Contact email address registered with Let's Encrypt. |
+| `acme_production` | Set to `false` initially to test against Let's Encrypt staging. Set to `true` for valid production certificates. |
 
-<Callout type="warn" title="Two things that bite people">
-  The TLS-ALPN challenge requires the listener to be reachable on **port 443**
-  — set `api.port: 443` and open it in your firewall. And staging certificates
-  are *not* trusted by browsers or by the panel's TLS validation; they exist
-  so you can prove your DNS and port setup work without burning Let's Encrypt
-  rate limits. Flip `acme_production: true` and restart when the staging run
-  succeeds.
+<Callout type="warn" title="Port 443 required for TLS-ALPN">
+  The Let's Encrypt TLS-ALPN challenge requires inbound traffic on port 443. Set `api.port: 443` and ensure port 443 is accessible in your firewall when using ACME.
 </Callout>
 
-After enabling, update the node's connection URL in the panel to `https://node.example.com:443` (or leave the port off, since 443 is the default scheme port) and restart the daemon.
+## Option 2 — Manual certificates
 
-## Option 2 — bring your own certificate
-
-If you already run a certificate infrastructure — certbot, Caddy's internal PKI, a wildcard from your provider — hand the files to the daemon:
+If you generate certificates using Certbot, Caddy, or a wildcard provider, specify absolute paths to your PEM files:
 
 ```yml
 api:
-  port: 8080
+  host: 0.0.0.0
+  port: 8081
   ssl:
     enabled: true
     cert: /etc/panasaurus/tls/fullchain.pem
     key: /etc/panasaurus/tls/privkey.pem
 ```
 
-The daemon reads both files on startup, so renewals just need a `systemctl restart panasaurus-wings` — or wire one into your renewal hook. Permissions matter: the files must be readable by the service user, but the private key should not be world-readable (mode `0640` is a reasonable middle ground).
+Ensure the certificate and private key files are readable by the process running Wings.
 
-For fully private networks, `ktls_enabled: true` offloads symmetric crypto to the kernel where the kernel supports it — a free throughput win on busy nodes.
+## Option 3 — Reverse proxy (Nginx or Caddy)
 
-## Option 3 — reverse proxy
+You can terminate TLS behind a reverse proxy such as Nginx or Caddy while Wings listens on `127.0.0.1:8081` with `ssl.enabled: false`.
 
-Terminate TLS in front of the daemon and let Wings speak plain HTTP on localhost:
+Example Nginx configuration:
 
 ```nginx
 server {
@@ -68,25 +62,16 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/node.example.com/privkey.pem;
 
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:8081;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 ```
 
-The `Upgrade` headers are not optional — the panel drives consoles and file transfers over websockets, and a proxy that drops them produces consoles that connect and immediately die. With Caddy the equivalent is a two-line site block; it handles certificates and upgrade headers automatically.
-
-If you proxy from a private network, also add your proxy's IP range to `api.trusted_proxies` so the daemon logs real client addresses instead of the proxy's.
-
-## Checking your work
-
-Whichever path you take, the test is the same — from the panel's machine, or at least from outside:
-
-```bash
-curl -v https://node.example.com:8080/openapi.json -o /dev/null
-```
-
-A trusted certificate with a JSON body means done. `SSL certificate problem` means the panel will reject the node too — fix the certificate, not the panel.
+<Callout type="info" title="Websocket Headers">
+  WebSocket upgrade headers (`Upgrade` and `Connection`) must be forwarded by your proxy for web console and file streaming to work properly.
+</Callout>

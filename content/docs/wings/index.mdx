@@ -4,11 +4,11 @@ description: The node daemon
 ---
 
 
-Wings are the server management subsystem created for Panasaurus Panel 
+Wings is the server control subsystem for Panasaurus Panel, built in Rust for high performance and security.
 
 <Cards>
   <Card title="Install Wings" href="/docs/wings/installation">
-    The automated installer, or by hand in five commands
+    The automated installer, or manual installation steps
   </Card>
   <Card title="Configuration" href="/docs/wings/configuration">
     Every section of /etc/panasaurus/config.yml explained
@@ -17,20 +17,20 @@ Wings are the server management subsystem created for Panasaurus Panel
     ACME over TLS-ALPN, bring-your-own certs, or a reverse proxy
   </Card>
   <Card title="SFTP access" href="/docs/wings/sftp">
-    Authentication, host keys, rate limits, and the .wings shell
+    Authentication, file limits, and SFTP access
   </Card>
 </Cards>
 
 ## Requirements
 
-- Ubuntu 22.04+ or Debian 12 (apt-based, systemd)
+- Linux operating system (Ubuntu 22.04+ or Debian 12 recommended)
 - amd64 or arm64 CPU
-- Docker — Wings cannot run servers without it; the installer sets it up if missing
-- A reachable panel with a node created for this machine
+- Docker — Wings requires Docker to run server containers
+- A reachable Panasaurus Panel instance with a node record created
 
 <Callout type="info" title="Where to ask">
   If a node refuses to go green, the usual suspects are covered in
   [Wings installation](/docs/wings/installation) and
-  [Wings configuration](/docs/wings/configuration) — and the
-  [Discord](https://discord.gg/tszvW9zKN7) is where the edge cases live.
+  [Wings configuration](/docs/wings/configuration) — or ask on
+  [Discord](https://discord.gg/tszvW9zKN7).
 </Callout>

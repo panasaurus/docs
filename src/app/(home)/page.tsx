@@ -11,13 +11,13 @@ import { BookOpenText, Server, Boxes, Egg, MessageCircle, ArrowRight } from "luc
 
 export const metadata: Metadata = {
 	metadataBase: new URL('https://panasaurus.com'),
-	title: "Panasaurus — the dino-strong game server platform",
+	title: "Panasaurus — Game Server Management Platform",
 	description:
-		"Panasaurus is a game server management platform built on the proven Pterodactyl and Pyrodactyl lineage. A Docker-native panel with Blueprint built in, a Wings daemon rewritten in Rust, and every core image in one GHCR namespace.",
+		"Panasaurus is an open-source game server management platform with a Docker-based panel, built-in Blueprint extension support, a Rust Wings daemon, and maintained runtime images.",
 	openGraph: {
-		title: "Panasaurus — the dino-strong game server platform",
+		title: "Panasaurus — Game Server Management Platform",
 		description:
-			"A Docker-native panel with Blueprint built in, a Wings daemon rewritten in Rust, and every core image in one GHCR namespace.",
+			"A Docker-based panel with Blueprint built in, a Rust Wings daemon, and container runtime images on GHCR.",
 		images: [{ url: "/og.png" }],
 	},
 };
@@ -27,36 +27,36 @@ const components = [
 		name: "Panel",
 		icon: <Server size={20} />,
 		href: "/docs/panasaurus/installation",
-		tagline: "The control plane.",
+		tagline: "Control plane web interface.",
 		points: [
-			"Laravel 12 + React 19, OPcache JIT out of the box",
+			"Laravel 12 and React 19 web interface",
 			"Blueprint extension framework pre-installed",
-			"Marketplace, extension CLI, and /api/health built in",
-			"One compose stack: panel, MariaDB, Redis",
+			"In-app extension marketplace and management CLI",
+			"Docker Compose deployment with MariaDB and Redis",
 		],
 	},
 	{
 		name: "Wings",
 		icon: <WingsLogo className="h-5 w-5" />,
 		href: "/docs/wings/installation",
-		tagline: "The node daemon, in Rust.",
+		tagline: "Node management daemon.",
 		points: [
-			"Drop-in compatible with the Wings v1.13.3 API",
-			"Native TLS with automatic ACME certificates",
-			"SFTP with rate limits and a sandboxed shell",
-			"Six backup drivers, per-server bandwidth limits",
+			"Written in Rust using Tokio and Axum",
+			"Native TLS listener with Let's Encrypt ACME support",
+			"Built-in SFTP server with panel authentication",
+			"Local archive and S3 remote backup options",
 		],
 	},
 	{
 		name: "Images",
 		icon: <Boxes size={20} />,
 		href: "/docs/panasaurus/images",
-		tagline: "The yolks, maintained.",
+		tagline: "Container runtime bases.",
 		points: [
-			"One namespace: ghcr.io/panasaurus/images",
-			"Java 8–26, Node 12–24, Python 3.7–3.13, Go, Rust, .NET",
-			"Multi-arch builds, rebuilt monthly",
-			"A single linted CI pipeline for all 58 images",
+			"Single registry namespace: ghcr.io/panasaurus/images",
+			"Runtimes for Java, Node.js, Python, Go, Rust, and game servers",
+			"Multi-architecture builds for linux/amd64 and linux/arm64",
+			"Automated testing and monthly image rebuilds",
 		],
 	},
 ];
@@ -68,18 +68,18 @@ const Page = () => {
 				<div className="relative mx-auto flex h-full w-full container flex-col items-center px-6">
 					<div className="z-10 mx-auto mt-12 flex h-full w-full flex-col items-center justify-between gap-8 lg:flex-row lg:gap-0">
 						<h1 className="w-full font-extrabold text-display-lg tracking-[-0.14rem] drop-shadow-xl lg:w-1/2 text-gray-900 dark:text-gray-100">
-							The dino-strong game server platform
+							Open-source game server management.
 						</h1>
 						<div className="flex w-full flex-col gap-8 lg:w-1/3 lg:gap-4">
 							<p className="text-gray-600 dark:text-[#ffffffbb] text-[20px] leading-[155%]">
-								A Docker-native panel with Blueprint built in, a Wings daemon rewritten in Rust, and every core image in one GHCR namespace — designed to run together.
+								A containerized panel with Blueprint extensions built in, a high-performance Rust node daemon, and maintained runtime images.
 							</p>
 							<div className="flex gap-2 flex-col">
 								<Button variant="secondary" href="/docs/panasaurus" isArrow>
-									<BookOpenText size={16} /> View Documentation
+									<BookOpenText size={16} /> Read Documentation
 								</Button>
 								<Button variant="secondary" href="https://github.com/panasaurus/panel" isArrow external>
-									<GitHubLogoIcon /> Star on GitHub
+									<GitHubLogoIcon /> GitHub
 								</Button>
 							</div>
 						</div>
@@ -121,13 +121,13 @@ const Page = () => {
 				>
 					<div className="pointer-events-none absolute bottom-0 left-0 z-[0] h-[676px] w-[676px] scale-[1.75] rounded-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[--circle-background] to-70% to-[transparent] opacity-[12%] xl:right-[50px] xl:left-auto" />
 					<div className="relative z-[14] flex max-w-[750px] flex-col items-start justify-start">
-						<Pill>Three parts, one installer</Pill>
+						<Pill>Platform Architecture</Pill>
 						<h1 className="mb-6 max-w-4xl font-extrabold text-display-xl tracking-tighter text-gray-900 dark:text-white">
-							<span className="bg-gradient-to-br from-brand to-emerald-500 bg-clip-text text-transparent">Docker-native.</span> <br />
-							<span className="bg-gradient-to-br from-brand to-emerald-500 bg-clip-text text-transparent">Dino-strong.</span>
+							<span className="bg-gradient-to-br from-brand to-emerald-500 bg-clip-text text-transparent">Docker-based.</span> <br />
+							<span className="bg-gradient-to-br from-brand to-emerald-500 bg-clip-text text-transparent">Modular design.</span>
 						</h1>
 						<p className="mb-6 font-medium text-gray-600 dark:text-[#ffffff99] text-xl leading-[190%]">
-							One command turns a bare apt-based server into a running panel, a Wings node, or both — it installs Docker, verifies release checksums, generates secrets, writes the systemd unit, and waits for the health checks to pass.
+							The installer configures Docker, sets up required services, generates initial credentials, and verifies container health checks.
 						</p>
 					</div>
 
@@ -154,24 +154,24 @@ const Page = () => {
 					</div>
 
 					<div className="relative z-[14] flex max-w-[750px] flex-col items-start justify-start pt-8">
-						<Pill>The ecosystem</Pill>
+						<Pill>Ecosystem</Pill>
 						<h1 className="mb-6 max-w-4xl font-extrabold text-display-lg tracking-tighter text-gray-900 dark:text-white">
-							Eggs, community, and source
+							Eggs, community, and source code
 						</h1>
 					</div>
 
 					<Cards className="relative z-[14]">
 						<Card title="Eggs marketplace" href="https://eggs.panasaurus.com" external>
 							<Egg size={16} className="mb-2 text-brand" />
-							Curated, tested eggs for popular games at eggs.panasaurus.com — import one JSON file under Admin → Nests and deploy.
+							Community game eggs at eggs.panasaurus.com — import JSON files under Admin → Nests.
 						</Card>
 						<Card title="Discord" href="https://discord.gg/tszvW9zKN7" external>
 							<MessageCircle size={16} className="mb-2 text-brand" />
-							Install help, Wings networking questions, egg requests, and extension talk — the fastest way to reach people who run this stack daily.
+							Community discussion, setup assistance, and development chat on Discord.
 						</Card>
 						<Card title="GitHub" href="https://github.com/panasaurus" external>
 							<GitHubLogoIcon className="mb-2 text-brand" />
-							Panel, Wings, images, and these docs — everything is open source under the panasaurus organization.
+							All repositories for the panel, Wings daemon, images, and documentation are open source on GitHub.
 						</Card>
 					</Cards>
 				</div>
@@ -180,7 +180,7 @@ const Page = () => {
 				<div className="container flex flex-col items-start justify-between gap-4 text-sm text-gray-500 dark:text-gray-400 md:flex-row md:items-center">
 					<span className="flex items-center gap-2">
 						<PanasaurusLogo className="h-5 w-5" />
-						Panasaurus — the dino-strong game server platform
+						Panasaurus Game Server Platform
 					</span>
 					<span>
 						Built on{" "}
