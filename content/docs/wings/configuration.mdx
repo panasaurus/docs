@@ -1,106 +1,122 @@
 ---
 title: Wings configuration
-description: Reference for /etc/panasaurus/config.yml — panel connection, API listener, storage, SFTP, Docker, and backups.
+description: Reference for /etc/panasaurus/config.yml — panel connection, API listener, system storage, SFTP, and Docker settings.
 ---
 
 
-Wings reads a single YAML file, by default `/etc/panasaurus/config.yml`. The installer generates it for you with the daemon's own `--configure` command, so most operators only ever touch it to change the listener, add TLS, or tune resource behavior. After any edit:
+Wings reads its configuration from YAML (by default `/etc/panasaurus/config.yml`). You can generate a configuration with `panasaurus-wings --configure`. After editing the configuration file, restart the service:
 
 ```bash
 systemctl restart panasaurus-wings
 ```
 
-<Callout type="info" title="Regenerating safely">
-  `panasaurus-wings --configure` refuses to overwrite an existing config. To
-  rebuild one, move the old file aside first — or pass `--override` if your
-  build supports it. Hand edits survive, because the file is only rewritten
-  when you ask.
-</Callout>
-
-## Panel connection
-
-These keys are written by `--configure` from the values you passed the installer:
+## Example configuration
 
 ```yml
-remote: https://panel.example.com   # panel URL
-token_id: ...                       # from the panel's node record
-token: ...                          # application API credentials
-```
+uuid: 00000000-0000-0000-0000-000000000000
+token_id: NODE_TOKEN_ID
+token: NODE_TOKEN_SECRET_KEY_32_CHARS
+remote: https://panel.example.com
+jwt_audience: https://node.example.com:8081
 
-The node connection URL captured by `--node-url` becomes the daemon's JWT audience: **it must match the node's connection address in the panel exactly, including scheme and port**. If you change the node's address in the panel later, re-run the configure step with the new URL — a stale audience is the classic cause of panel-daemon authentication failures.
-
-## API listener
-
-```yml
 api:
-  host: 0.0.0.0
-  port: 8080
+  host: 127.0.0.1
+  port: 8081
+  upload_limit: 100
   ssl:
     enabled: false
     cert: /etc/panasaurus/tls/fullchain.pem
     key: /etc/panasaurus/tls/privkey.pem
-    ktls_enabled: false        # kernel TLS offload
-  upload_limit: 100            # upload size limit, MiB
-  max_jwt_uses: 5              # reuses allowed per download JWT until expiry
-  trusted_proxies: []          # CIDRs trusted for X-Forwarded-For
-```
+    acme_domain: node.example.com
+    acme_email: admin@example.com
+    acme_production: false
 
-TLS has its own page — [native TLS and ACME](/docs/wings/tls) — including Panasaurus additions such as `api.ssl.acme_domain`, `acme_email`, and `acme_production` for automatic Let's Encrypt certificates over TLS-ALPN.
-
-Useful hardening options on the same block: `disable_openapi_docs: true` hides the `/openapi.json` document, and `redirects` maps API paths elsewhere — commonly `/: https://panel.example.com` so a stray browser visit lands on the panel.
-
-## Storage and SFTP
-
-```yml
 system:
-  data: /var/lib/panasaurus    # server data root — must be an absolute path Docker can reach
+  data: /var/lib/panasaurus/volumes
+  default_disk_limit_mb: 20480
   sftp:
     enabled: true
     bind_address: 0.0.0.0
     bind_port: 2022
-    key_algorithm: ssh-ed25519
-```
+    max_handles: 64
 
-The data path matters more than it looks: containers mount their volumes from it, so it must be an absolute path and it should live on filesystem with enough space for every server you plan to host. SFTP authentication, host key handling, and its rate limits are covered on the [SFTP page](/docs/wings/sftp).
-
-## Docker
-
-```yml
 docker:
-  socket: /var/run/docker.sock
-  delete_container_on_stop: true     # containers are recreated from the image on boot
-  network:
-    interfaces:
-      v4:
-        enabled: true
-      v6:
-        enabled: true
+  executable: docker
+  user: "1000:1000"
+  tmpfs_size: 64
+  container_pid_limit: 512
+  cpu_period: 100000
+  cpu_shares: 0
+  memory_overhead_percent: 0
   installer_limits:
-    timeout: 1800                    # seconds before an install container is failed
+    memory: 1024
+    cpu: 100
+    timeout_seconds: 3600
+  network:
+    name: null
+    dns: []
+    enable_icc: false
+
+allowed_origins:
+  - https://panel.example.com
+
+allowed_mounts: []
+
+downloads:
+  allowed_hosts: []
+
+limits:
+  jobs: 8
+  sftp_connections: 64
+  transfer_bytes: 68719476736
+
+recovery:
+  enabled: true
+  restart_crashed: true
+  detect_clean_exit: false
+  crash_cooldown_seconds: 60
+  stop_timeout_seconds: 120
 ```
 
-`delete_container_on_stop` is on by default: stopped servers do not hold containers, which keeps idle CPU at zero and makes image changes apply on the next start. Turn it off only if a specific egg depends on persistent container state.
+## Core settings
 
-## Backups
+- `remote`: The URL of your Panasaurus Panel instance.
+- `token_id` & `token`: Node credentials for authenticating with the panel's remote API.
+- `jwt_audience`: The node connection URL. **Must match the node's URL configured in the panel exactly.**
 
-Wings ships several backup drivers; the panel selects which one a node uses:
+## API listener (`api`)
 
-| Driver | Notes |
-|--------|-------|
-| `wings` | Local archives — tar, zip, or 7z, with `tar_gz` as the default format |
-| `s3` | Any S3-compatible store, with streaming uploads when the panel supports it |
-| `ddup-bak` | Content-addressed chunked backups, zstd-compressed |
-| `btrfs` / `zfs` | Snapshot-based, near-instant restores on matching filesystems |
-| `restic` | Delegates to an existing restic repository |
-| `pbs` | Proxmox Backup Server |
+- `host`: The IP address for the API listener (default `127.0.0.1`). If TLS is disabled, Wings requires binding to a loopback address.
+- `port`: Port for HTTP/HTTPS requests (default `8081`).
+- `upload_limit`: Maximum file upload size in MiB (1 to 10240 MiB).
+- `ssl`: TLS settings. Supports path-based certificates (`cert`, `key`) or Let's Encrypt TLS-ALPN via `acme_domain`.
 
-Tuning lives under `system.backups` — compression level, per-driver thread counts, and the `mounting` option that makes backups browsable in the web file manager.
+## System & SFTP (`system`)
 
-## Disk limits
+- `data`: Absolute path to server files (e.g., `/var/lib/panasaurus/volumes`). Must be accessible by Docker.
+- `default_disk_limit_mb`: Fallback disk allocation limit for servers in MiB.
+- `sftp.enabled`: Enables or disables the internal SFTP service.
+- `sftp.bind_address` & `sftp.bind_port`: SFTP listener address and port (default port `2022`).
+- `sftp.max_handles`: Maximum open file handles per SFTP session (1 to 512).
 
-```yml
-system:
-  disk_limiter_mode: none      # none, btrfs_subvolume, zfs_dataset, xfs_quota
-```
+## Docker settings (`docker`)
 
-By default Wings only *reports* disk usage. With a limiter mode set, quotas are actually enforced at the filesystem level — `btrfs_subvolume` and `zfs_dataset` per server, `xfs_quota` via project quotas. An inotify-backed scanner keeps usage counts fresh without full rescans (`disk_check_use_inotify`, with `full_disk_check_every` as the safety net).
+- `executable`: Name or path of the Docker binary (default `docker`).
+- `user`: User and group ID passed to container execution (e.g. `"1000:1000"`).
+- `tmpfs_size`: Size of `/tmp` in MiB inside server containers.
+- `container_pid_limit`: Maximum number of processes allowed per container.
+- `cpu_period`: Docker CPU CFS period limit in microseconds.
+- `installer_limits`: Memory, CPU, and timeout limits applied when running egg installation scripts.
+
+## Concurrency & limits (`limits`)
+
+- `jobs`: Maximum simultaneous background job operations (1 to 64).
+- `sftp_connections`: Maximum concurrent SFTP connections allowed (1 to 4096).
+- `transfer_bytes`: Maximum file/archive transfer size in bytes (e.g., 64 GiB).
+
+## Recovery & crash handling (`recovery`)
+
+- `enabled`: Enables automated crash recovery and monitoring for server containers.
+- `restart_crashed`: Automatically restarts containers that terminate unexpectedly.
+- `crash_cooldown_seconds`: Cooldown duration in seconds before attempting to restart a crashing server.
+- `stop_timeout_seconds`: Timeout in seconds given to a container when gracefully shutting down before forcing termination.
