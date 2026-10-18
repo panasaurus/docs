@@ -1,34 +1,32 @@
 ---
 title: Blueprint for Panasaurus
-description: The Blueprint extension framework ships pre-installed in the Panasaurus panel — no patching, no forks, no version drift.
+description: Blueprint extension framework integrated into the Panasaurus panel.
 ---
 
 
-[Blueprint](https://blueprint.zip) is the extension framework for Pterodactyl-family panels — extensions add admin pages, dashboards widgets, theme changes, and backend services without forking the panel. In most panels, Blueprint is something you install after the fact: download an extension, run a patch script, hope the panel update next month doesn't clobber it.
+[Blueprint](https://blueprint.zip) is an extension framework for Pterodactyl-based panels. It enables adding admin pages, dashboard components, custom themes, and backend routes without modifying core panel source files.
 
-Panasaurus ships Blueprint **pre-installed and integrated**. It is part of the image, seeded on first boot, and kept in sync with the panel itself — there is nothing to patch and no version drift to manage.
+Panasaurus ships with Blueprint pre-installed and integrated into the panel container.
 
-<Callout type="info" title="Operator guide">
-  If you want to install and manage extensions rather than write them, the
-  [Extensions page](/docs/panasaurus/extensions) in the Panasaurus section
-  covers the admin area, the marketplace, and the CLI.
+<Callout type="info" title="Managing Extensions">
+  For instructions on installing and managing extensions via the admin UI or CLI, see the [Extensions guide](/docs/panasaurus/extensions).
 </Callout>
 
-## What integration means
+## Integration Overview
 
-- **First boot seeds the framework.** Migrations and the Blueprint seeder run automatically when the panel container starts for the first time — no post-install script.
-- **The extension ecosystem just works.** Extensions written for Blueprint and Pterodactyl install and run unchanged. The `Pterodactyl\` PHP namespace is preserved on purpose: it is what keeps existing extensions compatible.
-- **A marketplace in the admin area.** A live, cached view of the Blueprint ecosystem directory with search and filters, under **Admin → Panasaurus → Marketplace**.
-- **Frontend extension points.** The panel's React 19 app exposes the same extension slots Blueprint users already know — extensions register through a routes registry instead of patching compiled bundles, so nothing needs rebuilding.
+- **Automatic Seeding:** Blueprint database migrations and seeders execute during initial panel container startup.
+- **Extension Compatibility:** Extensions built for Blueprint and Pterodactyl remain compatible. The `Pterodactyl\` PHP namespace is retained for extension compatibility.
+- **In-App Marketplace:** Search and browse extension listings under **Admin → Panasaurus → Marketplace**.
+- **Frontend Extension Points:** Extensions hook into defined React extension slots using a routes registry.
 
 <Cards>
   <Card title="Install and manage extensions" href="/docs/panasaurus/extensions">
-    The admin area, the marketplace, and the panasaurus CLI
+    Admin interface, marketplace, and CLI management
   </Card>
   <Card title="Writing extensions" href="/docs/blueprint/writing">
-    What to know when building for Panasaurus specifically
+    Guidelines for extension developers on Panasaurus
   </Card>
-  <Card title="Blueprint guides" href="https://blueprint.zip/guides" external>
-    The upstream developer documentation
+  <Card title="Blueprint documentation" href="https://blueprint.zip/guides" external>
+    Upstream developer documentation
   </Card>
 </Cards>
