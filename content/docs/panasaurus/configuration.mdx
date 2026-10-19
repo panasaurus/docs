@@ -16,7 +16,8 @@ The `panel:` service in the compose file takes its settings from environment var
 | `APP_TIMEZONE` | `UTC` | Timezone for scheduled tasks and displayed times. |
 | `APP_SERVICE_AUTHOR` | — | Email shown as the author of settings you export. |
 | `LE_EMAIL` | *(unset)* | Uncomment and set to issue a Let's Encrypt certificate on boot (requires port 443). |
-| `DB_PASSWORD` | *(generated)* | Must match `MYSQL_PASSWORD` in the `database:` service. |
+| `DB_PASSWORD` / `PANASAURUS_DB_PASSWORD` | *(generated)* | Must match `MYSQL_PASSWORD` in the `database:` service. |
+| `PANASAURUS_DB_ROOT_PASSWORD` | *(generated)* | Root password for the `database:` service. |
 | `PANASAURUS_ADMIN_EMAIL` | — | Initial admin email, seeded on first boot only. |
 | `PANASAURUS_ADMIN_USERNAME` | `admin` | Initial admin username, first boot only. |
 | `PANASAURUS_ADMIN_PASSWORD` | — | Initial admin password, first boot only. |

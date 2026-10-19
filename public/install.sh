@@ -370,8 +370,9 @@ configure_panel_port() {
 
 install_panel() {
   local app_dir="$INSTALL_DIR"
-  local compose_file tmp_dir
+  local compose_file env_file tmp_dir
   local db_password db_root_password admin_password attempts
+  local is_new_install=0
 
   info "Installing panel into ${app_dir} .."
 
@@ -384,6 +385,7 @@ install_panel() {
   validate_panel_port
 
   if [ ! -f "${app_dir}/docker-compose.yml" ]; then
+    is_new_install=1
     mkdir -p "$app_dir"
     tmp_dir="$(mktemp -d /tmp/panasaurus-panel.XXXXXX)"
 
@@ -423,6 +425,7 @@ install_panel() {
   fi
 
   compose_file="${app_dir}/docker-compose.yml"
+  env_file="${app_dir}/.env"
   [ -f "$compose_file" ] || die "Missing ${compose_file}."
 
   if [ -z "$PANEL_URL" ]; then
@@ -436,11 +439,52 @@ install_panel() {
   esac
   PANEL_URL="${PANEL_URL%/}"
 
-  if grep -q "CHANGE_ME_PLEASE" "$compose_file"; then
+  if grep -q "CHANGE_ME_PLEASE" "$compose_file" || grep -q "# PANASAURUS_ADMIN_EMAIL:" "$compose_file"; then
+    is_new_install=1
+  fi
+
+  # Resolve DB application and root passwords
+  db_password="${PANASAURUS_DB_PASSWORD:-}"
+  db_root_password="${PANASAURUS_DB_ROOT_PASSWORD:-}"
+
+  if [ -z "$db_password" ] && [ -f "$env_file" ]; then
+    db_password="$(grep -E '^PANASAURUS_DB_PASSWORD=' "$env_file" | cut -d'=' -f2- | tr -d '\r\n"' || true)"
+  fi
+  if [ -z "$db_root_password" ] && [ -f "$env_file" ]; then
+    db_root_password="$(grep -E '^PANASAURUS_DB_ROOT_PASSWORD=' "$env_file" | cut -d'=' -f2- | tr -d '\r\n"' || true)"
+  fi
+
+  if [ -z "$db_password" ]; then
+    db_password="$(openssl rand -hex 16)"
+  fi
+  if [ -z "$db_root_password" ]; then
+    db_root_password="$(openssl rand -hex 16)"
+  fi
+
+  # Write/update .env file so docker compose can interpolate required variables
+  touch "$env_file"
+  chmod 0600 "$env_file"
+
+  if ! grep -q "^PANASAURUS_DB_PASSWORD=" "$env_file"; then
+    printf 'PANASAURUS_DB_PASSWORD=%s\n' "$db_password" >> "$env_file"
+  else
+    sed -i.bak -e "s|^PANASAURUS_DB_PASSWORD=.*|PANASAURUS_DB_PASSWORD=${db_password}|" "$env_file"
+    rm -f "${env_file}.bak"
+  fi
+
+  if ! grep -q "^PANASAURUS_DB_ROOT_PASSWORD=" "$env_file"; then
+    printf 'PANASAURUS_DB_ROOT_PASSWORD=%s\n' "$db_root_password" >> "$env_file"
+  else
+    sed -i.bak -e "s|^PANASAURUS_DB_ROOT_PASSWORD=.*|PANASAURUS_DB_ROOT_PASSWORD=${db_root_password}|" "$env_file"
+    rm -f "${env_file}.bak"
+  fi
+
+  export PANASAURUS_DB_PASSWORD="$db_password"
+  export PANASAURUS_DB_ROOT_PASSWORD="$db_root_password"
+
+  if [ "$is_new_install" -eq 1 ]; then
     info "Generating initial configuration .."
 
-    db_password="$(openssl rand -hex 16)"
-    db_root_password="$(openssl rand -hex 16)"
     admin_password="$(openssl rand -hex 12)"
 
     mkdir -p \
