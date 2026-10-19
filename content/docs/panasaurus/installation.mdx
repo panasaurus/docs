@@ -24,7 +24,7 @@ That is the whole installation. Behind the scenes the installer:
 1. Installs Docker and the Compose plugin if they are missing
 2. Downloads `panel.tar.gz` from the [panel releases](https://github.com/panasaurus/panel/releases) and verifies it against the published `CHECKSUM`
 3. Extracts the stack into `/opt/panasaurus/panel`
-4. Generates strong MariaDB credentials and an initial admin password, and writes them into `docker-compose.yml`
+4. Generates strong MariaDB credentials and an initial admin password, and writes them into `.env` and `docker-compose.yml`
 5. Starts the stack and polls `GET /api/health` until it reports healthy
 6. Opens ports 80 and 443 in your firewall (unless `--no-firewall`)
 
@@ -62,12 +62,12 @@ sha256sum -c CHECKSUM
 tar -xzf panel.tar.gz --strip-components=1
 ```
 
-Open `docker-compose.yml` and fill in the placeholders:
+Open `docker-compose.yml` (and `.env` if using environment variable interpolation) and fill in the placeholders or values:
 
-| Placeholder | Purpose |
+| Placeholder / Variable | Purpose |
 |-------------|---------|
-| `CHANGE_ME_PLEASE` | MariaDB application password (`MYSQL_PASSWORD` and `DB_PASSWORD` must stay identical) |
-| `CHANGE_ME_TOO_PLEASE` | MariaDB root password |
+| `CHANGE_ME_PLEASE` / `PANASAURUS_DB_PASSWORD` | MariaDB application password (`MYSQL_PASSWORD` and `DB_PASSWORD` must stay identical) |
+| `CHANGE_ME_TOO_PLEASE` / `PANASAURUS_DB_ROOT_PASSWORD` | MariaDB root password |
 | `APP_URL` | The public URL users will visit |
 | `PANASAURUS_ADMIN_EMAIL` / `_USERNAME` / `_PASSWORD` | Uncomment to seed the initial admin account on first boot |
 
