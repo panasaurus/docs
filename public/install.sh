@@ -100,11 +100,11 @@ die()   { error "$1"; exit "${2:-1}"; }
 
 banner() {
   cat <<EOF
-${C_GREEN}   ___              _                        _
-  | _ \__ _ _  _ __| |__ _ _  _ ___ __ ___ _(_)___
-  |  _/ _\` | || / _\` / _\` | || (_-</ _|/ _ \ '_(_-<
-  |_| \__,_|\_,_\__,_\__, |\_,_/__\__|\__,_|_|/__/
-                      |___/${C_RESET}        the dino-strong platform
+${C_GREEN}  ____
+ |  _ \\  __ _  _ __   __ _  ___  __ _ _   _ _ __ _   _ ___
+ | |_) |/ _\` || '_ \\ / _\` |/ __|/ _\` | | | | '__| | | / __|
+ |  __/| (_| || | | | (_| |\\__ \\ (_| | |_| | |  | |_| \\__ \\
+ |_|    \\__,_||_| |_|\\__,_||___/\\__,_|\\__,_|_|   \\__,_|___/${C_RESET}        the dino-strong platform
 
   https://github.com/panasaurus
   https://eggs.panasaurus.com
@@ -321,14 +321,16 @@ configure_panel_port() {
 
   # Supported short-form examples:
   #   - "80:80"
+  #   - "8080:80"
   #   - "127.0.0.1:80:80"
   #   - "0.0.0.0:80:80"
+  #   - "${PANEL_PORT:-80}:80"
   #
   # The host port is changed. The container port remains 80.
-  # Long-form Compose mappings and environment-variable mappings are
+  # Long-form Compose mappings and complex mappings are
   # deliberately rejected rather than silently misconfigured.
 
-  pattern="^[[:space:]]*-[[:space:]]*[\"']?([^[:space:]#]+:)?[0-9]+:80[\"']?([[:space:]]*(#.*)?)?$"
+  pattern="^[[:space:]]*-[[:space:]]*[\"']?(([a-zA-Z0-9_.-]+:)?(\\\$\\{[^}]+\\}|[0-9]+)):80[\"']?([[:space:]]*(#.*)?)?$"
 
   if ! grep -Eq "$pattern" "$compose_file"; then
     die "Could not find a supported HTTP port mapping in ${compose_file}. Back up the file and configure its published host port manually."
@@ -340,7 +342,7 @@ configure_panel_port() {
   before="$(sha256sum "$compose_file" | awk '{print $1}')"
 
   if ! sed -i -E \
-    "/${pattern}/s/([\"']?([^[:space:]#]+:)?)[0-9]+(:80[\"']?([[:space:]]*(#.*)?)?)$/\\1${PANEL_PORT}\\3/" \
+    "/${pattern}/s/(([[:space:]]*-[[:space:]]*[\"']?)([a-zA-Z0-9_.-]+:)?)((\\\$\\{[^}]+\\}|[0-9]+))(:80[\"']?([[:space:]]*(#.*)?)?)$/\\1${PANEL_PORT}\\6/" \
     "$compose_file"; then
     cp -p "$backup_file" "$compose_file"
     die "Failed to update the panel port mapping."
