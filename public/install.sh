@@ -494,6 +494,7 @@ install_panel() {
       "${app_dir}/data/extensions" \
       "${app_dir}/data/nginx" \
       "${app_dir}/data/certs"
+    chmod -R 0777 "${app_dir}/data"
 
     sed -i.bak \
       -e "s|CHANGE_ME_PLEASE|${db_password}|g" \
@@ -522,6 +523,18 @@ install_panel() {
   info "Pulling Docker images .."
   $DOCKER_COMPOSE pull --quiet ||
     warn "One or more images could not be pulled."
+
+  if [ -z "$(ls -A "${app_dir}/data/extensions" 2>/dev/null)" ]; then
+    info "Seeding default extensions .."
+    docker run --entrypoint sh --rm -v "${app_dir}/data/extensions:/target" ghcr.io/panasaurus/panel:latest -c "cp -a /app/.blueprint/extensions/. /target/ 2>/dev/null || true"
+  fi
+
+  if [ -z "$(ls -A "${app_dir}/data/nginx" 2>/dev/null)" ]; then
+    info "Seeding default Nginx configuration .."
+    docker run --entrypoint sh --rm -v "${app_dir}/data/nginx:/target" ghcr.io/panasaurus/panel:latest -c "cp -a /etc/nginx/http.d/. /target/ 2>/dev/null || true && rm -f /target/default.conf"
+  fi
+
+  chmod -R 0777 "${app_dir}/data"
 
   info "Starting panel .."
   $DOCKER_COMPOSE up -d
