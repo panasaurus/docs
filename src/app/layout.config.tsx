@@ -1,5 +1,6 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import PanasaurusLogo from '@/components/ui/PanasaurusLogo';
+import styles from './docs/docs.module.css';
 
 /**
  * Shared layout configurations
@@ -12,8 +13,9 @@ export const baseOptions: BaseLayoutProps = {
   nav: {
     title: (
       <>
-        <PanasaurusLogo className="h-6 w-6" />
-        <span className="font-extrabold tracking-tight">Panasaurus</span>
+        <PanasaurusLogo className={styles.brandLogo} />
+        <span className={styles.brandName}>Panasaurus<span>.</span></span>
+        <span className={styles.docsBadge}>Docs</span>
       </>
     ),
   },

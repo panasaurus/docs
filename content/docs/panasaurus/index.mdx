@@ -1,8 +1,12 @@
 ---
-title: Panasaurus Documentation
-description: A game server management platform consisting of a Docker-native panel, a Rust Wings daemon, and maintained container images.
+title: Overview
+description: Everything you need to install, run, and make Panasaurus your own. Start with the panel, connect your nodes, and take it from there.
 ---
 
+
+<DocsOverview />
+
+## Meet the platform
 
 Panasaurus is a game server management platform built on the Pterodactyl and Pyrodactyl lineage. It consists of three core components:
 
@@ -14,22 +18,9 @@ Panasaurus is a game server management platform built on the Pterodactyl and Pyr
 
 An installer script (`install.sh`) automates deploying the panel, Wings, or both on Debian/Ubuntu systems.
 
-<Cards>
-  <Card title="Automated installation" href="/docs/panasaurus/automated">
-    The install.sh reference — flags, options, and actions
-  </Card>
-  <Card title="Install the panel" href="/docs/panasaurus/installation">
-    Automated script or manual Docker Compose setup
-  </Card>
-  <Card title="Install Wings" href="/docs/wings/installation">
-    Set up a node daemon and connect it to your panel
-  </Card>
-  <Card title="Eggs marketplace" href="https://eggs.panasaurus.com" external>
-    Eggs for popular games, tested for Panasaurus
-  </Card>
-</Cards>
 
-## Key Features
+
+## What’s built in
 
 - **Built-in Blueprint support.** The Blueprint extension framework ships pre-installed in the panel image. Extensions run without manual file patching, and the admin panel includes an extension marketplace.
 - **Containerized architecture.** The panel runs in a multi-stage Docker container stack. Wings communicates directly with the host Docker daemon to manage game server instances.
@@ -54,7 +45,7 @@ bash install.sh --wings --panel-url https://panel.example.com \
 
 See [Automated installer](/docs/panasaurus/automated), [Panel installation](/docs/panasaurus/installation), and [Wings installation](/docs/wings/installation) for full documentation.
 
-## Community & Credits
+## Community & credits
 
 - [Eggs marketplace](https://eggs.panasaurus.com): Community game eggs.
 - [Discord](https://discord.gg/tszvW9zKN7): Community support and development discussion.
