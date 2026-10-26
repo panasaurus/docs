@@ -634,13 +634,30 @@ install_wings() {
 
   # 3. Download the architecture-specific release.
   tmp_dir="$(mktemp -d /tmp/panasaurus-wings.XXXXXX)"
-  trap 'rm -rf "${tmp_dir:-}"' RETURN
+  trap 'rm -rf "${tmp_dir:-}"' EXIT RETURN
 
   info "Downloading Wings release ${RELEASE_VERSION} .."
 
   if ! fetch "$(release_url "$WINGS_REPO" "$asset")" \
     "${tmp_dir}/${asset}"; then
     die "Failed to download ${asset} from the Wings release."
+  fi
+
+  if fetch "$(release_url "$WINGS_REPO" "SHA256SUMS")" \
+    "${tmp_dir}/SHA256SUMS" 2>/dev/null; then
+    local expected_checksum actual_checksum
+    expected_checksum="$(grep -E "linux-${machine}\.tar\.gz$" "${tmp_dir}/SHA256SUMS" | awk '{print $1}' | head -n1 || true)"
+    if [ -z "$expected_checksum" ]; then
+      expected_checksum="$(grep -E "${asset}$" "${tmp_dir}/SHA256SUMS" | awk '{print $1}' | head -n1 || true)"
+    fi
+
+    if [ -n "$expected_checksum" ]; then
+      actual_checksum="$(sha256sum "${tmp_dir}/${asset}" | awk '{print $1}')"
+      if [ "$expected_checksum" != "$actual_checksum" ]; then
+        die "Wings archive checksum verification failed."
+      fi
+      ok "Wings archive checksum verified."
+    fi
   fi
 
   tar -tzf "${tmp_dir}/${asset}" >/dev/null ||
@@ -720,10 +737,17 @@ install_wings() {
     ok "Existing config found at ${WINGS_CONFIG}; leaving it unchanged."
   else
     if [ -z "$PANEL_URL" ]; then
-      PANEL_URL="$(ask "Panel URL" "")"
+      [ -n "$PRIMARY_IP" ] || detect_primary_ip
+      PANEL_URL="$(ask "Panel URL" "http://${PRIMARY_IP}:${PANEL_PORT}")"
     fi
     [ -n "$PANEL_URL" ] ||
       die "--panel-url is required for Wings configuration."
+
+    case "$PANEL_URL" in
+      http://*|https://*) ;;
+      *) PANEL_URL="http://${PANEL_URL}" ;;
+    esac
+    PANEL_URL="${PANEL_URL%/}"
 
     if [ -z "$WINGS_NODE" ]; then
       WINGS_NODE="$(ask "Numeric node ID from the panel" "1")"
@@ -734,7 +758,8 @@ install_wings() {
     esac
 
     if [ -z "$NODE_URL" ]; then
-      NODE_URL="$(ask "Node connection URL (including port)" "")"
+      [ -n "$PRIMARY_IP" ] || detect_primary_ip
+      NODE_URL="$(ask "Node connection URL (including port)" "http://${PRIMARY_IP}:${DAEMON_API_PORT}")"
     fi
     [ -n "$NODE_URL" ] ||
       die "--node-url is required. It must match the panel's node connection address, including the port."
@@ -760,7 +785,8 @@ install_wings() {
       --node-id "$WINGS_NODE" \
       --token-env PANASAURUS_APPLICATION_TOKEN \
       --node-url "$NODE_URL" \
-      --config "$WINGS_CONFIG"
+      --config "$WINGS_CONFIG" ||
+      die "Failed to generate Wings configuration. Check that the Panel URL ($PANEL_URL) is reachable, Node ID ($WINGS_NODE) exists in the panel, and the API token is valid."
 
     unset PANASAURUS_APPLICATION_TOKEN
 
@@ -803,6 +829,14 @@ install_wings() {
 
   # 9. Wait for the daemon API.
   info "Waiting for the Wings API .."
+
+  if [ -f "$WINGS_CONFIG" ]; then
+    local cfg_port
+    cfg_port="$(grep -E '^[[:space:]]*port:' "$WINGS_CONFIG" | awk '{print $2}' | tr -d ' "\r\n' | head -n1 || true)"
+    if [ -n "$cfg_port" ] && case "$cfg_port" in ''|*[!0-9]*) false ;; *) true ;; esac; then
+      DAEMON_API_PORT="$cfg_port"
+    fi
+  fi
 
   attempts=0
   until curl -fsSk --noproxy '*' \
